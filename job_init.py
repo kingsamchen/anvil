@@ -36,8 +36,7 @@ set({cap_name}_DIR ${{CMAKE_CURRENT_SOURCE_DIR}})
 set({cap_name}_DEPS_DIR ${{{cap_name}_DIR}}/deps)
 set({cap_name}_CMAKE_DIR ${{{cap_name}_DIR}}/cmake)
 
-include(FetchContent)
-set(FETCHCONTENT_BASE_DIR ${{DEPS_DEPLOY_DIR}})
+include(${{{cap_name}_CMAKE_DIR}}/dependency_manager.cmake)
 '''
 
 _PCH_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
