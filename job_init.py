@@ -21,6 +21,10 @@ project({name} CXX)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if({cap_name}_NOT_SUBPROJECT)
+  set(CMAKE_CXX_STANDARD {cxx_standard})
+  set(CMAKE_CXX_STANDARD_REQUIRED ON)
+  set(CMAKE_CXX_EXTENSIONS OFF)
+
   set(ROOT_DIR ${{CMAKE_SOURCE_DIR}})
   set(DEPS_SOURCE_DIR ${{ROOT_DIR}}/{dep_src_dir})
   set(DEPS_DEPLOY_DIR {dep_deploy_dir})
@@ -38,11 +42,6 @@ set(FETCHCONTENT_BASE_DIR ${{DEPS_DEPLOY_DIR}})
 
 _PCH_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
 set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
-'''
-
-_CXX_TEMPLATE = '''set(CMAKE_CXX_STANDARD {cxx_standard})
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 '''
 
 _COMPILER_MSVC_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)
@@ -171,7 +170,8 @@ def generate_project_part(rules):
     return _PROJECT_TEMPLATE.format(cap_name=rules.project_rule.upper_name,
                                     name=rules.project_rule.name,
                                     dep_src_dir=rules.project_rule.deps_source_dir,
-                                    dep_deploy_dir=rules.project_rule.deps_deploy_dir)
+                                    dep_deploy_dir=rules.project_rule.deps_deploy_dir,
+                                    cxx_standard=rules.project_rule.cxx_standard)
 
 
 def generate_pch_part(rules):
@@ -188,8 +188,7 @@ def indent_lines(s, indent_size):
 
 
 def generate_compiler_part(rules):
-    text = _CXX_TEMPLATE.format(cxx_standard=rules.project_rule.cxx_standard)
-    text += '\n#Compiler and output configurations.\n'
+    text = '#Compiler and output configurations.\n'
 
     msvc = ''
     posix = ''
