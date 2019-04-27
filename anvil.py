@@ -5,6 +5,8 @@
 import argparse
 
 import job_init
+import job_build
+import job_gen
 
 VER = '0.1.0'
 
@@ -26,9 +28,18 @@ def parse_args():
 
     # command gen
     gen_parser = cmd_parser.add_parser('gen', help='generate build system files out from the cmake files')
+    gen_parser.set_defaults(func=job_gen.run_gen_job)
+    gen_parser.add_argument('target', help='which target to generate', action='store')
 
     # command build
-    build_parser = cmd_parser.add_parser('build', help='build the project')
+    build_parser = cmd_parser.add_parser('build', help='build the project. it will first invoke gen command by default')
+    build_parser.set_defaults(func=job_build.run_build_job)
+    build_parser.add_argument('target', help='which target to build', action='store')
+    build_parser.add_argument('--mode', help='which build mode to use', dest='build_mode', action='store')
+    build_parser.add_argument('--no-gen', help='do not generate build system files first', dest='no_gen',
+                              action='store_true')
+
+    # TODO: list command
 
     # command version
     ver_parser = cmd_parser.add_parser('version', help='show version and exit')

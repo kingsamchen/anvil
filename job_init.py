@@ -266,6 +266,8 @@ def setup_pch_files(rules):
     if not rules.pch_rule.enabled:
         return
 
+    print('[*] Setting up pch files')
+
     pch_folder = path.dirname(rules.pch_rule.pch_file)
     if not path.exists(pch_folder):
         os.makedirs(pch_folder)
@@ -275,8 +277,12 @@ def setup_pch_files(rules):
     shutil.copy(path.join(pch_src_dir, 'precompile.h'), rules.pch_rule.pch_file)
     shutil.copy(path.join(pch_src_dir, 'precompile.cpp'), path.join(pch_folder, 'precompile.cpp'))
 
+    print('[*] Done setting up pch files')
+
 
 def generate_main_module_cmake_file(rules):
+    print('[*] Setting up CMakeLists.txt for main module')
+
     main_dir = rules.main_module_rule.name
 
     if not path.exists(main_dir):
@@ -314,6 +320,24 @@ def generate_main_module_cmake_file(rules):
 
         f.write(_MAIN_TARGET_TEMPLATE.format(name=rules.main_module_rule.name))
 
+    print('[*] Done setting up CMakeLists.txt for main module')
+
+
+def setup_anvil_workspace(rule_file):
+    print('[*] Setting up anvil workspace')
+
+    anvil_dir = '.anvil'
+    conf_file = "configs.toml"
+
+    if not path.exists(anvil_dir):
+        os.mkdir(anvil_dir)
+
+    shutil.copy(rule_file, path.join(anvil_dir, path.basename(rule_file)))
+    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', conf_file),
+                path.join(anvil_dir, conf_file))
+
+    print('[*] Done setting up anvil workspace')
+
 
 def run_init_job(args):
     data = toml.load(args.rule_file)
@@ -322,3 +346,4 @@ def run_init_job(args):
     setup_cmake_module_folder(rules)
     setup_pch_files(rules)
     generate_main_module_cmake_file(rules)
+    setup_anvil_workspace(args.rule_file)
