@@ -4,9 +4,10 @@
 
 import argparse
 
-import job_init
 import job_build
 import job_gen
+import job_init
+import job_list
 
 VER = '0.1.0'
 
@@ -39,7 +40,10 @@ def parse_args():
     build_parser.add_argument('--no-gen', help='do not generate build system files first', dest='no_gen',
                               action='store_true')
 
-    # TODO: list command
+    # command list
+    list_parser = cmd_parser.add_parser('list',
+                                        help='list available gen targets and build modes for a given configuration')
+    list_parser.set_defaults(func=job_list.run_list_job)
 
     # command version
     ver_parser = cmd_parser.add_parser('version', help='show version and exit')
