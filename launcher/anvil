@@ -1,0 +1,8 @@
+#!/bin/bash
+# 0xCCCCCCCC
+
+set -e
+
+ANVIL="$(dirname "$(realpath "$0")")"/../anvil.py
+
+$ANVIL "$@"
