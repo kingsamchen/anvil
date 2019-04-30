@@ -215,7 +215,7 @@ def generate_add_main_module_part(rules):
 def generate_root_cmake_file(rules):
     print('[*] Generating root CMakeLists.txt...')
 
-    with open('CMakeLists.txt', 'w') as f:
+    with open('CMakeLists.txt', 'w', newline='\n') as f:
         f.write(generate_cmake_ver_part(rules))
         f.write('\n')
 
@@ -288,7 +288,7 @@ def generate_main_module_cmake_file(rules):
     if not path.exists(main_dir):
         os.mkdir(main_dir)
 
-    with open(path.join(main_dir, 'CMakeLists.txt'), 'w') as f:
+    with open(path.join(main_dir, 'CMakeLists.txt'), 'w', newline='\n') as f:
         f.write('\n')
 
         f.write(_MAIN_SRCS_TEMPLATE.format(name=rules.main_module_rule.name))
@@ -332,7 +332,10 @@ def setup_anvil_workspace(rule_file):
     if not path.exists(anvil_dir):
         os.mkdir(anvil_dir)
 
-    shutil.copy(rule_file, path.join(anvil_dir, path.basename(rule_file)))
+    dest_rule_file = path.join(anvil_dir, path.basename(rule_file))
+    if path.abspath(rule_file) != path.abspath(dest_rule_file):
+        shutil.copy(rule_file, dest_rule_file)
+
     shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', conf_file),
                 path.join(anvil_dir, conf_file))
 
