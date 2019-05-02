@@ -17,6 +17,7 @@ function(declare_dep_module MODULE_NAME)
 
   # Content name is used by the module and in the lowercase.
   string(TOLOWER "${MODULE_NAME}-${ARG_VERSION}" MODULE_CONTENT_NAME)
+  string(TOUPPER "${MODULE_CONTENT_NAME}" UC_MODULE_CONTENT_NAME)
 
   # Source dir is where we put the source code of the dependency.
   # `DEPS_SOURCE_DIR` is defined by the root project.
@@ -36,8 +37,8 @@ function(declare_dep_module MODULE_NAME)
     message(STATUS "Fetching dep: ${MODULE_CONTENT_NAME}")
 
     if(EXISTS "${MODULE_SOURCE_DIR}/CMakeLists.txt")
-      message(STATUS "${MODULE_CONTENT_NAME} source dir is already ready; skip fetching.")
-      set("FETCHCONTENT_SOURCE_DIR_${MODULE_CONTENT_NAME}" ${MODULE_SOURCE_DIR})
+      set("FETCHCONTENT_SOURCE_DIR_${UC_MODULE_CONTENT_NAME}" ${MODULE_SOURCE_DIR})
+      message(STATUS "${MODULE_CONTENT_NAME} source dir is found at: ${FETCHCONTENT_SOURCE_DIR_${UC_MODULE_CONTENT_NAME}}; skip fetching.")
     endif()
 
     FetchContent_Populate(${MODULE_CONTENT_NAME})
