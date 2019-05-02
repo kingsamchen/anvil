@@ -2,9 +2,7 @@
 include(FetchContent)
 set(FETCHCONTENT_BASE_DIR ${DEPS_DEPLOY_DIR})
 
-include(CMakeParseArguments)
-
-function(dep_module_declare MODULE_NAME)
+function(declare_dep_module MODULE_NAME)
   set(options "")
 
   set(oneValueArgs
@@ -13,9 +11,7 @@ function(dep_module_declare MODULE_NAME)
     GIT_TAG
   )
 
-  set(multiValueArgs
-    OPTIONS
-  )
+  set(multiValueArgs "")
 
   cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
@@ -56,4 +52,4 @@ function(dep_module_declare MODULE_NAME)
     add_subdirectory("${${MODULE_CONTENT_NAME}_CONTENT_SOURCE_DIR_VAR}" "${${MODULE_CONTENT_NAME}_CONTENT_BINARY_DIR_VAR}")
   endif()
 
-endfunction(dep_module_declare)
+endfunction(declare_dep_module)
