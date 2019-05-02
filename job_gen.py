@@ -47,7 +47,7 @@ def run_gen_job(args):
 
     out_dir = path.join(project_root, gen_target['out_dir'])
     if not path.exists(out_dir):
-        os.mkdir(out_dir)
+        os.makedirs(out_dir, exist_ok=True)
     os.chdir(out_dir)
 
     run('cmake {args} -G "{generator}" "{root}"'.format(
