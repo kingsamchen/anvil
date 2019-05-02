@@ -36,10 +36,10 @@ set({cap_name}_DIR ${{CMAKE_CURRENT_SOURCE_DIR}})
 set({cap_name}_DEPS_DIR ${{{cap_name}_DIR}}/deps)
 set({cap_name}_CMAKE_DIR ${{{cap_name}_DIR}}/cmake)
 
-include(${{{cap_name}_CMAKE_DIR}}/dependency_manager.cmake)
-'''
+include(${{{cap_name}_CMAKE_DIR}}/dependency_manager.cmake)'''
 
-_PCH_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
+_PCH_TEMPLATE = '''
+include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
 set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
 '''
 

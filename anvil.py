@@ -36,7 +36,7 @@ def parse_args():
     build_parser = cmd_parser.add_parser('build', help='build the project. it will first invoke gen command by default')
     build_parser.set_defaults(func=job_build.run_build_job)
     build_parser.add_argument('target', help='which target to build', action='store')
-    build_parser.add_argument('--mode', help='which build mode to use', dest='build_mode', action='store')
+    build_parser.add_argument('--mode', help='which build mode to use', dest='build_mode', action='store', default='')
     build_parser.add_argument('--no-gen', help='do not generate build system files first', dest='no_gen',
                               action='store_true')
 

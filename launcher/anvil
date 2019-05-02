@@ -5,4 +5,4 @@ set -e
 
 ANVIL="$(dirname "$(realpath "$0")")"/../anvil.py
 
-$ANVIL "$@"
+python3 $ANVIL "$@"
