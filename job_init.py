@@ -43,7 +43,8 @@ include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
 set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
 '''
 
-_COMPILER_MSVC_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)
+_COMPILER_MSVC_TEMPLATE = '''string (REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${{CMAKE_CXX_FLAGS}}")
+include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)
 foreach(OUTPUTCONFIG_TYPE ${{CMAKE_CONFIGURATION_TYPES}})
   string(TOUPPER ${{OUTPUTCONFIG_TYPE}} OUTPUTCONFIG)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/bin)
@@ -187,7 +188,7 @@ def indent_lines(s, indent_size):
 
 
 def generate_compiler_part(rules):
-    text = '#Compiler and output configurations.\n'
+    text = '# Compiler and output configurations.\n'
 
     msvc = ''
     posix = ''
