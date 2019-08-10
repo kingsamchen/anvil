@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 # 0xCCCCCCCC
 
+from os import path
+
 import os
 import shutil
-import toml
 
-from os import path
+import toml
 
 
 _CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n'
@@ -334,8 +335,10 @@ def setup_anvil_workspace(rule_file):
         os.mkdir(anvil_dir)
 
     dest_rule_file = path.join(anvil_dir, path.basename(rule_file))
+
+    # Skip if we edit the rule file in place.
     if path.abspath(rule_file) != path.abspath(dest_rule_file):
-        shutil.copy(rule_file, dest_rule_file)
+        shutil.move(rule_file, dest_rule_file)
 
     shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', conf_file),
                 path.join(anvil_dir, conf_file))
