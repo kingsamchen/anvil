@@ -55,6 +55,7 @@ function(enable_msvc_static_analysis_for_target TARGET)
   target_compile_options(${TARGET}
     PRIVATE
       /analyze
+      /analyze:WX-
 
     PRIVATE
       ${ARG_WDL}

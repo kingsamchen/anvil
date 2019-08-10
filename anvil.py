@@ -9,7 +9,7 @@ import job_gen
 import job_init
 import job_list
 
-VER = '0.1.1'
+VER = '0.1.2'
 
 
 def show_anvil_version(_):
