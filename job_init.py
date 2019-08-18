@@ -4,6 +4,7 @@
 
 from os import path
 
+import fileinput
 import os
 import shutil
 
@@ -235,6 +236,14 @@ def generate_root_cmake_file(rules):
     print('[*] Done generating root CMakeLists.txt...')
 
 
+def replace_projname_for_cmakefile(filepath, real_project_name):
+    with fileinput.FileInput(filepath, inplace=True) as f:
+        for line in f:
+            if line.startswith('function('):
+                line = line.replace('{projname}', real_project_name)
+            print(line, end='')
+
+
 def setup_cmake_module_folder(rules):
     print('[*] Setting up cmake modules')
 
@@ -246,11 +255,15 @@ def setup_cmake_module_folder(rules):
 
     if rules.platform_support_rule.support_posix:
         file = 'compiler_posix.cmake'
-        shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
+        target_path = path.join(dest_dir, file)
+        shutil.copy(path.join(module_dir, file), target_path)
+        replace_projname_for_cmakefile(target_path, str.lower(rules.project_rule.name))
 
     if rules.platform_support_rule.support_windows:
         file = 'compiler_msvc.cmake'
-        shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
+        target_path = path.join(dest_dir, file)
+        shutil.copy(path.join(module_dir, file), target_path)
+        replace_projname_for_cmakefile(target_path, str.lower(rules.project_rule.name))
 
     if rules.pch_rule.enabled:
         file = 'cotire.cmake'
