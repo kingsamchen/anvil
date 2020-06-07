@@ -4,11 +4,6 @@
 
 [project]
     name = "Demo"
-    # The directory to store source of dependency.
-    # Always relative to project root directory.
-    deps_source_dir = "build/deps"
-    # Where sub-build files of the dependency to store.
-    deps_deploy_dir = "${CMAKE_BINARY_DIR}"
     cxx_standard = "14"
 
 [precompiled_header]

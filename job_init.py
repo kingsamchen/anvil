@@ -11,7 +11,7 @@ import shutil
 import toml
 
 
-_CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n'
+_CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n\n# TODO: Add POLICY here.\n'
 
 _PROJECT_TEMPLATE = '''# Detect if being bundled via sub-directory.
 if(NOT DEFINED PROJECT_NAME)
@@ -28,17 +28,14 @@ if({cap_name}_NOT_SUBPROJECT)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   set(ROOT_DIR ${{CMAKE_SOURCE_DIR}})
-  set(DEPS_SOURCE_DIR ${{ROOT_DIR}}/{dep_src_dir})
-  set(DEPS_DEPLOY_DIR {dep_deploy_dir})
 endif()
 
-# Add options here.
+# TODO: Add options here.
 
 set({cap_name}_DIR ${{CMAKE_CURRENT_SOURCE_DIR}})
-set({cap_name}_DEPS_DIR ${{{cap_name}_DIR}}/deps)
 set({cap_name}_CMAKE_DIR ${{{cap_name}_DIR}}/cmake)
 
-include(${{{cap_name}_CMAKE_DIR}}/dependency_manager.cmake)'''
+include(${{{cap_name}_CMAKE_DIR}}/CPM.cmake)'''
 
 _PCH_TEMPLATE = '''
 include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
@@ -61,63 +58,46 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/lib)
 
 _ADD_MAIN_MODULE_TEMPLATE = 'add_subdirectory({name})\n'
 
-_MAIN_SRCS_TEMPLATE = '''set({name}_SRCS
+_MAIN_TARGET_TEMPLATE = '''add_{type}({name})
+
+target_sources({name}
+  PRIVATE
+    main.cpp
+  
+  $<$<BOOL:${{WIN32}}>:
+  >
+  
+  $<$<NOT:$<BOOL:${{WIN32}}>>:
+  >
+)
+
+target_include_directories({name}
+  PUBLIC ${{CMAKE_CURRENT_SOURCE_DIR}}/../
+)
+
+target_link_libraries({name}
 )
 '''
 
-_MAIN_MULTI_SRCS_TEMPLATE = '''if(WIN32)
-  list(APPEND {name}_SRCS
-  )
-elseif(UNIX)
-  list(APPEND {name}_SRCS
-  )
-endif()
-'''
+_MAIN_PROPERTY_TEMPLATE = '''apply_{low_proj_name}_compile_conf({name})
 
-_MAIN_HEADERS_TEMPLATE = '''set({name}_HEADERS
-)
-'''
-
-_MAIN_MULTI_HEADERS_TEMPLATE = '''if(WIN32)
-  list(APPEND {name}_HEADERS
-  )
-elseif(UNIX)
-  list(APPEND {name}_HEADERS
-  )
-endif()
-'''
-
-_MAIN_PROPERTY_TEMPLATE = '''set({name}_FILES ${{{name}_HEADERS}} ${{{name}_SRCS}})
-
+get_target_property({name}_FILES {name} SOURCES)
 source_group("{name}" FILES ${{{name}_FILES}})
-
-add_{type}({name} ${{{name}_FILES}})
-
-apply_common_compile_properties_to_target({name})
 '''
 
-_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE = '''if(MSVC)
-  enable_msvc_static_analysis_for_target({name})
+_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE = '''if(MSVC AND {cap_proj_name}_ENABLE_CODE_ANALYSIS)
+  enable_{low_proj_name}_msvc_static_analysis_conf({name}
+    WDL
+      /wd6011 # Dereferencing potentially NULL pointer.
+  )
 endif()
 '''
 
 _MAIN_USE_PCH_TEMPLATE = '''set_target_properties({name} PROPERTIES
-  COTIRE_CXX_PREFIX_HEADER_INIT "${{{cap_name}_PCH_HEADER}}"
+  COTIRE_CXX_PREFIX_HEADER_INIT "${{{cap_proj_name}_PCH_HEADER}}"
 )
 
 cotire({name})
-'''
-
-_MAIN_TARGET_TEMPLATE = '''target_include_directories({name}
-  PUBLIC ${{CMAKE_CURRENT_SOURCE_DIR}}/../
-)
-
-# Uncomment if you use them.
-#target_compile_definitions({name}
-#)
-
-target_link_libraries({name}
-)
 '''
 
 
@@ -130,8 +110,7 @@ class ProjectRule:
     def __init__(self, data):
         self.name = data['name']
         self.upper_name = str.upper(self.name)
-        self.deps_source_dir = data['deps_source_dir']
-        self.deps_deploy_dir = data['deps_deploy_dir']
+        self.lower_name = str.lower(self.name)
         self.cxx_standard = data['cxx_standard']
 
 
@@ -171,8 +150,6 @@ def generate_cmake_ver_part(rules):
 def generate_project_part(rules):
     return _PROJECT_TEMPLATE.format(cap_name=rules.project_rule.upper_name,
                                     name=rules.project_rule.name,
-                                    dep_src_dir=rules.project_rule.deps_source_dir,
-                                    dep_deploy_dir=rules.project_rule.deps_deploy_dir,
                                     cxx_standard=rules.project_rule.cxx_standard)
 
 
@@ -211,6 +188,13 @@ def generate_compiler_part(rules):
     return text
 
 
+def generate_cmake_build_type_part():
+    return '''if(NOT MSVC)
+  message(STATUS "BUILD_TYPE = " ${CMAKE_BUILD_TYPE})
+endif()
+'''
+
+
 def generate_add_main_module_part(rules):
     return _ADD_MAIN_MODULE_TEMPLATE.format(name=rules.main_module_rule.name)
 
@@ -229,6 +213,9 @@ def generate_root_cmake_file(rules):
         f.write('\n')
 
         f.write(generate_compiler_part(rules))
+        f.write('\n')
+
+        f.write(generate_cmake_build_type_part())
         f.write('\n')
 
         f.write(generate_add_main_module_part(rules))
@@ -269,7 +256,7 @@ def setup_cmake_module_folder(rules):
         file = 'cotire.cmake'
         shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
 
-    special_files = ('compiler_posix.cmake', 'compiler_msvc.cmake', 'cotire.cmake',)
+    special_files = ('compiler_posix.cmake', 'compiler_msvc.cmake', 'cotire.cmake', 'dependency_manager.cmake',)
     normal_files = filter(lambda name: name not in special_files, os.listdir(module_dir))
     for file in normal_files:
         shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
@@ -306,57 +293,49 @@ def generate_main_module_cmake_file(rules):
     with open(path.join(main_dir, 'CMakeLists.txt'), 'w', newline='\n') as f:
         f.write('\n')
 
-        f.write(_MAIN_SRCS_TEMPLATE.format(name=rules.main_module_rule.name))
+        f.write(_MAIN_TARGET_TEMPLATE.format(name=rules.main_module_rule.name,
+                                             type=rules.main_module_rule.type))
         f.write('\n')
 
-        if rules.platform_support_rule.support_windows and rules.platform_support_rule.support_posix:
-            f.write(_MAIN_MULTI_SRCS_TEMPLATE.format(name=rules.main_module_rule.name))
-            f.write('\n')
-
-        f.write(_MAIN_HEADERS_TEMPLATE.format(name=rules.main_module_rule.name))
-        f.write('\n')
-
-        if rules.platform_support_rule.support_windows and rules.platform_support_rule.support_posix:
-            f.write(_MAIN_MULTI_HEADERS_TEMPLATE.format(name=rules.main_module_rule.name))
-            f.write('\n')
-
-        f.write(_MAIN_PROPERTY_TEMPLATE.format(name=rules.main_module_rule.name,
-                                               type=rules.main_module_rule.type))
+        f.write(_MAIN_PROPERTY_TEMPLATE.format(low_proj_name=rules.project_rule.lower_name,
+                                               name=rules.main_module_rule.name))
         f.write('\n')
 
         if rules.main_module_rule.use_msvc_sa:
-            f.write(_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE.format(name=rules.main_module_rule.name))
+            f.write(_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE.format(name=rules.main_module_rule.name,
+                                                               low_proj_name=rules.project_rule.lower_name,
+                                                               cap_proj_name=rules.project_rule.upper_name))
             f.write('\n')
 
         if rules.main_module_rule.use_pch:
             f.write(_MAIN_USE_PCH_TEMPLATE.format(name=rules.main_module_rule.name,
-                                                  cap_name=str.upper(rules.main_module_rule.name)))
+                                                  cap_proj_name=rules.project_rule.upper_name))
             f.write('\n')
-
-        f.write(_MAIN_TARGET_TEMPLATE.format(name=rules.main_module_rule.name))
 
     print('[*] Done setting up CMakeLists.txt for main module')
 
 
-def setup_anvil_workspace(rule_file):
-    print('[*] Setting up anvil workspace')
+def touch_main_source_file(rules):
+    main_dir = rules.main_module_rule.name
+    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', 'main.cpp'),
+                path.join(main_dir, 'main.cpp'))
 
-    anvil_dir = '.anvil'
-    conf_file = "configs.toml"
 
-    if not path.exists(anvil_dir):
-        os.mkdir(anvil_dir)
+def setup_anvil_build_scripts(rule_file, rules):
+    print('[*] Setting up anvil build scripts')
 
-    dest_rule_file = path.join(anvil_dir, path.basename(rule_file))
+    ps_file = 'anvil.ps1'
+    sh_file = 'anvil.sh'
 
-    # Skip if we edit the rule file in place.
-    if path.abspath(rule_file) != path.abspath(dest_rule_file):
-        shutil.move(rule_file, dest_rule_file)
+    if rules.platform_support_rule.support_windows:
+        shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', ps_file),
+                    path.join(path.dirname(rule_file), ps_file))
 
-    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', conf_file),
-                path.join(anvil_dir, conf_file))
+    if rules.platform_support_rule.support_posix:
+        shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', sh_file),
+                    path.join(path.dirname(rule_file), sh_file))
 
-    print('[*] Done setting up anvil workspace')
+    print('[*] Done setting up build scripts')
 
 
 def run_init_job(args):
@@ -366,4 +345,5 @@ def run_init_job(args):
     setup_cmake_module_folder(rules)
     setup_pch_files(rules)
     generate_main_module_cmake_file(rules)
-    setup_anvil_workspace(args.rule_file)
+    touch_main_source_file(rules)
+    setup_anvil_build_scripts(args.rule_file, rules)
