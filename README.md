@@ -9,8 +9,8 @@ However, CMake is not friendly to novice to get started, and even for users who 
 anvil tries to improve your user experience in using CMake by providing features like:
 
 - bootstrapping a new project out of a configured template.
-- a built-in lightweight dependency manager for medium-sized projects.
-- configurable generation & build
+- an out-of-box lightweight dependency manager for medium-sized projects.
+- built-in building scripts for various platforms
 
 ## Installation
 
@@ -18,7 +18,7 @@ anvil tries to improve your user experience in using CMake by providing features
 
 - OS: any OS that meets following requirements
 - Python 3
-- CMake 3.11 or higher (our built-in dependency manager relies on fetch-content module)
+- CMake 3.14 or higher (our built-in dependency manager relies on fetch-content module)
 
 ### Steps
 
@@ -53,55 +53,12 @@ Anvil would now create folders and files for you; and a copy of the used `projec
 
 ### Configure generation & build
 
-Edit `.anvil/configs.toml` to make it meet your requirements.
+There are two script files both named `anvil` for quickly building your project.
 
-This file is called configuration set, and contains different configuration; each contains more than one _configuration targets_ and _build modes_.
+`anvil.ps1` is for using Visual Studio on Windows, while `anvil.sh` is for unix-like systems.
 
-The file contains brief description and example templates and tries to make it self-explained.
-
-The command for generating is `anvil gen configuration[.target]`
-
-If `target` is empty, then `.target` can be omitted.
-
-```shell
-anvil gen msvc-2019
-anvil gen ninja-clang.Debug
-```
-
-The command for building is `anvil build configuration[.target] [--mode=] [--no-gen]`
-
-```shell
-anvil build msvc-2019 --mode=Debug
-anvil build ninja-clang.Debug --no-gen
-```
-
-If build mode is empty, then `--mode=` can be omitted.
-
-`build` will first `gen` the project, use `--no-gen` to suppress it.
+Run `help ./anvil` or `./anvil --help` for details.
 
 ### Using Dependency Manager
 
-After setting up a project via anvil, you have deployed anvil's dependency manager into your project, which is located at `project/cmake/dependency_manager.cmake`
-
-If one of your module relies on `Catch2`, just add following into your module's `CMakeLists.txt`
-
-```cmake
-declare_dep_module(Catch2
-  VERSION         2.5.0
-  GIT_REPOSITORY  https://github.com/catchorg/Catch2.git
-  GIT_TAG         v2.5.0
-)
-
-#...
-
-target_link_libraries(demo
-  PRIVATE
-    Catch2
-)
-```
-
-Then the specified revision of Catch2 will be downloaded and being added to your project during generation.
-
-Our built-in dependency manager module chooses source-code dependency over binary dependency; and this dependency model gets you rid of tricky ABI-compability issues.
-
-All deps source code are archived at `project/build/deps` by default, and these local copies will be reused whenever possible (if `VERSION` remains the same) to prevent unnecessary downloading when you switch between generators.
+We use [CPM.cmake](https://github.com/TheLartians/CPM.cmake) as our default dependency management.
