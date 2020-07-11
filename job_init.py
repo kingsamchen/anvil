@@ -63,10 +63,10 @@ _MAIN_TARGET_TEMPLATE = '''add_{type}({name})
 target_sources({name}
   PRIVATE
     main.cpp
-  
+
   $<$<BOOL:${{WIN32}}>:
   >
-  
+
   $<$<NOT:$<BOOL:${{WIN32}}>>:
   >
 )
@@ -108,9 +108,11 @@ class CMakeRule:
 
 class ProjectRule:
     def __init__(self, data):
+        # the name is the original name, while upper_name & lower_name both are normalized
+        # i.e. `-` is replaced with `_`.
         self.name = data['name']
-        self.upper_name = str.upper(self.name)
-        self.lower_name = str.lower(self.name)
+        self.upper_name = str.upper(self.name).replace('-', '_')
+        self.lower_name = str.lower(self.name).replace('-', '_')
         self.cxx_standard = data['cxx_standard']
 
 
@@ -244,13 +246,13 @@ def setup_cmake_module_folder(rules):
         file = 'compiler_posix.cmake'
         target_path = path.join(dest_dir, file)
         shutil.copy(path.join(module_dir, file), target_path)
-        replace_projname_for_cmakefile(target_path, str.lower(rules.project_rule.name))
+        replace_projname_for_cmakefile(target_path, rules.project_rule.lower_name)
 
     if rules.platform_support_rule.support_windows:
         file = 'compiler_msvc.cmake'
         target_path = path.join(dest_dir, file)
         shutil.copy(path.join(module_dir, file), target_path)
-        replace_projname_for_cmakefile(target_path, str.lower(rules.project_rule.name))
+        replace_projname_for_cmakefile(target_path, rules.project_rule.lower_name)
 
     if rules.pch_rule.enabled:
         file = 'cotire.cmake'
