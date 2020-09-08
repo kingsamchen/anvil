@@ -4,7 +4,6 @@
 
 from os import path
 
-import fileinput
 import os
 import shutil
 
@@ -226,11 +225,15 @@ def generate_root_cmake_file(rules):
 
 
 def replace_projname_for_cmakefile(filepath, real_project_name):
-    with fileinput.FileInput(filepath, inplace=True) as f:
-        for line in f:
+    with open(filepath, mode='r+', newline='\n') as f:
+        lines = f.readlines()
+        for i, line in enumerate(lines):
             if line.startswith('function('):
-                line = line.replace('{projname}', real_project_name)
-            print(line, end='')
+                lines[i] = line.replace('{projname}', real_project_name)
+        # Let's overwrite
+        f.seek(0, os.SEEK_SET)
+        f.writelines(lines)
+        f.truncate()
 
 
 def setup_cmake_module_folder(rules):
