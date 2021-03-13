@@ -312,7 +312,7 @@ def generate_main_module_cmake_file(rules):
                                                                cap_proj_name=rules.project_rule.upper_name))
             f.write('\n')
 
-        if rules.main_module_rule.use_pch:
+        if rules.pch_rule.enabled and rules.main_module_rule.use_pch:
             f.write(_MAIN_USE_PCH_TEMPLATE.format(name=rules.main_module_rule.name,
                                                   cap_proj_name=rules.project_rule.upper_name))
             f.write('\n')
