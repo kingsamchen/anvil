@@ -27,6 +27,8 @@ if({cap_name}_NOT_SUBPROJECT)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   set(ROOT_DIR ${{CMAKE_SOURCE_DIR}})
+
+  set_directory_properties(PROPERTIES VS_STARTUP_PROJECT "{main_module_name}")
 endif()
 
 # TODO: Add options here.
@@ -168,7 +170,8 @@ def generate_cmake_ver_part(rules):
 def generate_project_part(rules):
     return _PROJECT_TEMPLATE.format(cap_name=rules.project_rule.upper_name,
                                     name=rules.project_rule.name,
-                                    cxx_standard=rules.project_rule.cxx_standard)
+                                    cxx_standard=rules.project_rule.cxx_standard,
+                                    main_module_name=rules.main_module_rule.name)
 
 
 def generate_pch_part(rules):
