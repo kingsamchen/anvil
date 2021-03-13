@@ -23,3 +23,5 @@
     use_pch = true
     # effective only if windows platform is enabled.
     use_msvc_static_analysis = true
+    # effective only if windows platform is enabled.
+    enable_msvc_ide_code_analysis = true

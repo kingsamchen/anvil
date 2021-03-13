@@ -92,6 +92,22 @@ _MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE = '''if(MSVC AND {cap_proj_name}_ENABLE_CODE
 endif()
 '''
 
+_MAIN_MSVC_IDE_CODE_ANALYSIS_TEMPLATE = '''set_target_properties({name} PROPERTIES
+    VS_GLOBAL_RunCodeAnalysis true
+
+    # Use visual studio core guidelines
+    # Tweak as your wish.
+    VS_GLOBAL_EnableMicrosoftCodeAnalysis true
+    # VS_GLOBAL_CodeAnalysisRuleSet ${{CMAKE_CURRENT_SOURCE_DIR}}/foo.ruleset
+    # VS_GLOBAL_CodeAnalysisRuleSet ${{CMAKE_CURRENT_SOURCE_DIR}}/foo.ruleset
+
+    # Use clangtidy
+    # Tweak as your wish.
+    VS_GLOBAL_EnableClangTidyCodeAnalysis true
+    # VS_GLOBAL_ClangTidyChecks -checks=-*,modernize-*,-modernize-use-trailing-return-type
+)
+'''
+
 _MAIN_USE_PCH_TEMPLATE = '''set_target_properties({name} PROPERTIES
   COTIRE_CXX_PREFIX_HEADER_INIT "${{{cap_proj_name}_PCH_HEADER}}"
 )
@@ -133,6 +149,7 @@ class MainModuleRule:
         self.type = data['type']
         self.use_pch = data['use_pch']
         self.use_msvc_sa = data['use_msvc_static_analysis']
+        self.enable_msvc_ide_ca = data['enable_msvc_ide_code_analysis']
 
 
 class Rules:
@@ -306,10 +323,16 @@ def generate_main_module_cmake_file(rules):
                                                name=rules.main_module_rule.name))
         f.write('\n')
 
-        if rules.main_module_rule.use_msvc_sa:
+        if rules.platform_support_rule.support_windows and\
+                rules.main_module_rule.use_msvc_sa:
             f.write(_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE.format(name=rules.main_module_rule.name,
                                                                low_proj_name=rules.project_rule.lower_name,
                                                                cap_proj_name=rules.project_rule.upper_name))
+            f.write('\n')
+
+        if rules.platform_support_rule.support_windows and\
+                rules.main_module_rule.enable_msvc_ide_ca:
+            f.write(_MAIN_MSVC_IDE_CODE_ANALYSIS_TEMPLATE.format(name=rules.main_module_rule.name,))
             f.write('\n')
 
         if rules.pch_rule.enabled and rules.main_module_rule.use_pch:
