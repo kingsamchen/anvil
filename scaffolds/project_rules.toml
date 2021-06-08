@@ -4,7 +4,7 @@
 
 [project]
     name = "Demo"
-    cxx_standard = "14"
+    cxx_standard = "17"
 
 [precompiled_header]
     enabled = true

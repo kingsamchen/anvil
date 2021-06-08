@@ -10,7 +10,7 @@ import shutil
 import toml
 
 
-_CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n\n# TODO: Add POLICY here.\n'
+_CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n\n# Add POLICY below.\n'
 
 _PROJECT_TEMPLATE = '''# Detect if being bundled via sub-directory.
 if(NOT DEFINED PROJECT_NAME)
@@ -31,31 +31,42 @@ if({cap_name}_NOT_SUBPROJECT)
   set_directory_properties(PROPERTIES VS_STARTUP_PROJECT "{main_module_name}")
 endif()
 
-# TODO: Add options here.
+# Add options below.
 
 set({cap_name}_DIR ${{CMAKE_CURRENT_SOURCE_DIR}})
 set({cap_name}_CMAKE_DIR ${{{cap_name}_DIR}}/cmake)
 
-include(${{{cap_name}_CMAKE_DIR}}/CPM.cmake)'''
+include(${{{cap_name}_CMAKE_DIR}}/CPM.cmake)
+
+message(STATUS "GENERATOR = " ${{CMAKE_GENERATOR}})'''
 
 _PCH_TEMPLATE = '''
 include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
 set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
 '''
 
-_COMPILER_MSVC_TEMPLATE = '''string (REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${{CMAKE_CXX_FLAGS}}")
-include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)
-foreach(OUTPUTCONFIG_TYPE ${{CMAKE_CONFIGURATION_TYPES}})
-  string(TOUPPER ${{OUTPUTCONFIG_TYPE}} OUTPUTCONFIG)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/bin)
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/lib)
-endforeach()
+_OUTPUT_CONFIG_TEMPLATE = '''# Output configurations.
+get_property(MULTICONF_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(MULTICONF_GENERATOR)
+  foreach(OUTPUTCONFIG_TYPE ${{CMAKE_CONFIGURATION_TYPES}})
+    string(TOUPPER ${{OUTPUTCONFIG_TYPE}} OUTPUTCONFIG)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/bin)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/lib)
+  endforeach()
+else()
+  if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release")
+  endif()
+  message(STATUS "BUILD_TYPE = " ${{CMAKE_BUILD_TYPE}})
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/bin)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/lib)
+endif()
 '''
 
-_COMPILER_POSIX_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/compiler_posix.cmake)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/bin)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/lib)
-'''
+_COMPILER_MSVC_TEMPLATE = '''string (REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${{CMAKE_CXX_FLAGS}}")
+include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)'''
+
+_COMPILER_POSIX_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/compiler_posix.cmake)'''
 
 _ADD_MAIN_MODULE_TEMPLATE = 'add_subdirectory({name})\n'
 
@@ -187,8 +198,13 @@ def indent_lines(s, indent_size):
                               str.splitlines(s)))
 
 
+def generate_output_conf_part(rules):
+    _ = rules
+    return _OUTPUT_CONFIG_TEMPLATE.format()
+
+
 def generate_compiler_part(rules):
-    text = '# Compiler and output configurations.\n'
+    text = '# Compiler configurations.\n'
 
     msvc = ''
     posix = ''
@@ -209,13 +225,6 @@ def generate_compiler_part(rules):
     return text
 
 
-def generate_cmake_build_type_part():
-    return '''if(NOT MSVC)
-  message(STATUS "BUILD_TYPE = " ${CMAKE_BUILD_TYPE})
-endif()
-'''
-
-
 def generate_add_main_module_part(rules):
     return _ADD_MAIN_MODULE_TEMPLATE.format(name=rules.main_module_rule.name)
 
@@ -233,10 +242,10 @@ def generate_root_cmake_file(rules):
         f.write(generate_pch_part(rules))
         f.write('\n')
 
-        f.write(generate_compiler_part(rules))
+        f.write(generate_output_conf_part(rules))
         f.write('\n')
 
-        f.write(generate_cmake_build_type_part())
+        f.write(generate_compiler_part(rules))
         f.write('\n')
 
         f.write(generate_add_main_module_part(rules))
@@ -355,16 +364,10 @@ def touch_main_source_file(rules):
 def setup_anvil_build_scripts(rule_file, rules):
     print('[*] Setting up anvil build scripts')
 
-    ps_file = 'anvil.ps1'
-    sh_file = 'anvil.sh'
+    script_file = 'anvil.py'
 
-    if rules.platform_support_rule.support_windows:
-        shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', ps_file),
-                    path.join(path.dirname(rule_file), ps_file))
-
-    if rules.platform_support_rule.support_posix:
-        shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', sh_file),
-                    path.join(path.dirname(rule_file), sh_file))
+    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', script_file),
+                path.join(path.dirname(rule_file), script_file))
 
     print('[*] Done setting up build scripts')
 
