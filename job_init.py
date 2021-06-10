@@ -41,7 +41,6 @@ include(${{{cap_name}_CMAKE_DIR}}/CPM.cmake)
 message(STATUS "GENERATOR = " ${{CMAKE_GENERATOR}})'''
 
 _PCH_TEMPLATE = '''
-include(${{{cap_name}_CMAKE_DIR}}/cotire.cmake)
 set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
 '''
 
@@ -121,11 +120,9 @@ _MAIN_MSVC_IDE_CODE_ANALYSIS_TEMPLATE = '''set_target_properties({name} PROPERTI
 )
 '''
 
-_MAIN_USE_PCH_TEMPLATE = '''set_target_properties({name} PROPERTIES
-  COTIRE_CXX_PREFIX_HEADER_INIT "${{{cap_proj_name}_PCH_HEADER}}"
+_MAIN_USE_PCH_TEMPLATE = '''target_precompile_headers({name}
+  PRIVATE "${{{cap_proj_name}_PCH_HEADER}}"
 )
-
-cotire({name})
 '''
 
 
@@ -286,11 +283,7 @@ def setup_cmake_module_folder(rules):
         shutil.copy(path.join(module_dir, file), target_path)
         replace_projname_for_cmakefile(target_path, rules.project_rule.lower_name)
 
-    if rules.pch_rule.enabled:
-        file = 'cotire.cmake'
-        shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
-
-    special_files = ('compiler_posix.cmake', 'compiler_msvc.cmake', 'cotire.cmake', 'dependency_manager.cmake',)
+    special_files = ('compiler_posix.cmake', 'compiler_msvc.cmake', 'cotire.cmake',)
     normal_files = filter(lambda name: name not in special_files, os.listdir(module_dir))
     for file in normal_files:
         shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
