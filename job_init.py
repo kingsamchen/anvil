@@ -372,6 +372,17 @@ def setup_anvil_build_scripts(rule_file, rules):
     print('[*] Done setting up build scripts')
 
 
+def setup_clang_format_file(rule_file, rules):
+    print('[*] Setting up clang-format file')
+
+    fmt = '.clang-format'
+
+    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', fmt),
+                path.join(path.dirname(rule_file), fmt))
+
+    print('[*] Done setting up .clang-format')
+
+
 def run_init_job(args):
     data = toml.load(args.rule_file)
     rules = Rules(data)
@@ -381,3 +392,4 @@ def run_init_job(args):
     generate_main_module_cmake_file(rules)
     touch_main_source_file(rules)
     setup_anvil_build_scripts(args.rule_file, rules)
+    setup_clang_format_file(args.rule_file, rules)
