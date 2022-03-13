@@ -373,8 +373,14 @@ def setup_anvil_build_scripts(rule_file, rules):
 
     script_file = 'build.py'
 
-    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', script_file),
-                path.join(path.dirname(rule_file), script_file))
+    src = path.join(path.dirname(path.abspath(__file__)),
+                    'scaffolds',
+                    script_file)
+    dest = path.join(path.dirname(rule_file), script_file)
+    shutil.copy(src, dest)
+    replace_projname_for_files(dest,
+                               rules.project_rule.lower_name,
+                               rules.project_rule.upper_name)
 
     print('[*] Done setting up build scripts')
 
