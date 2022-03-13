@@ -27,8 +27,6 @@ if({cap_name}_NOT_SUBPROJECT)
   set(CMAKE_CXX_EXTENSIONS OFF)
 
   set(ROOT_DIR ${{CMAKE_SOURCE_DIR}})
-
-  set_directory_properties(PROPERTIES VS_STARTUP_PROJECT "{main_module_name}")
 endif()
 
 # Add options below.
@@ -62,10 +60,15 @@ else()
 endif()
 '''
 
-_COMPILER_MSVC_TEMPLATE = '''string (REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${{CMAKE_CXX_FLAGS}}")
-include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)'''
+_COMPILER_MSVC_TEMPLATE = \
+        '''include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)'''
 
-_COMPILER_POSIX_TEMPLATE = '''include(${{{cap_name}_CMAKE_DIR}}/compiler_posix.cmake)'''
+_COMPILER_POSIX_TEMPLATE = \
+        '''include(${{{cap_name}_CMAKE_DIR}}/compiler_posix.cmake)'''
+
+_CLANG_TIDY_TEMPLATE = \
+'''include(${{{cap_name}_CMAKE_DIR}}/clang_tidy.cmake)
+'''
 
 _ADD_MAIN_MODULE_TEMPLATE = 'add_subdirectory({name})\n'
 
@@ -88,36 +91,25 @@ target_include_directories({name}
 
 target_link_libraries({name}
 )
+
+{low_proj_name}_apply_common_compile_options({name})
 '''
 
-_MAIN_PROPERTY_TEMPLATE = '''apply_{low_proj_name}_compile_conf({name})
-
-get_target_property({name}_FILES {name} SOURCES)
-source_group("{name}" FILES ${{{name}_FILES}})
+_MAIN_MSVC_TEMPLATE_BEGIN = '''if(MSVC)
+  get_target_property({name}_FILES {name} SOURCES)
+  source_group("{name}" FILES ${{{name}_FILES}})
 '''
 
-_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE = '''if(MSVC AND {cap_proj_name}_ENABLE_CODE_ANALYSIS)
-  enable_{low_proj_name}_msvc_static_analysis_conf({name}
-    WDL
-      /wd6011 # Dereferencing potentially NULL pointer.
-  )
-endif()
+_MAIN_MSVC_TEMPLATE_END = '''endif()
 '''
 
-_MAIN_MSVC_IDE_CODE_ANALYSIS_TEMPLATE = '''set_target_properties({name} PROPERTIES
-    VS_GLOBAL_RunCodeAnalysis true
-
-    # Use visual studio core guidelines
-    # Tweak as your wish.
-    VS_GLOBAL_EnableMicrosoftCodeAnalysis true
-    # VS_GLOBAL_CodeAnalysisRuleSet ${{CMAKE_CURRENT_SOURCE_DIR}}/foo.ruleset
-    # VS_GLOBAL_CodeAnalysisRuleSet ${{CMAKE_CURRENT_SOURCE_DIR}}/foo.ruleset
-
-    # Use clangtidy
-    # Tweak as your wish.
-    VS_GLOBAL_EnableClangTidyCodeAnalysis true
-    # VS_GLOBAL_ClangTidyChecks -checks=-*,modernize-*,-modernize-use-trailing-return-type
-)
+_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE = '''
+  if({cap_proj_name}_USE_MSVC_STATIC_ANALYSIS)
+    {low_proj_name}_apply_msvc_static_analysis({name}
+      WDL
+        /wd6011 # Dereferencing potentially NULL pointer.
+    )
+  endif()
 '''
 
 _MAIN_USE_PCH_TEMPLATE = '''target_precompile_headers({name}
@@ -125,6 +117,11 @@ _MAIN_USE_PCH_TEMPLATE = '''target_precompile_headers({name}
 )
 '''
 
+_TEST_SUPPORT_TEMPLATE = '''if({cap_name}_NOT_SUBPROJECT AND BUILD_TESTING)
+  include(CTest)
+  add_subdirectory(tests)
+endif()
+'''
 
 class CMakeRule:
     def __init__(self, data):
@@ -159,7 +156,11 @@ class MainModuleRule:
         self.type = data['type']
         self.use_pch = data['use_pch']
         self.use_msvc_sa = data['use_msvc_static_analysis']
-        self.enable_msvc_ide_ca = data['enable_msvc_ide_code_analysis']
+
+
+class TestSupportRule:
+    def __init__(self, data):
+        self.enabled = data['enabled']
 
 
 class Rules:
@@ -169,6 +170,7 @@ class Rules:
         self.pch_rule = PCHRule(data['precompiled_header'])
         self.platform_support_rule = PlatformSupportRule(data['platform_support'])
         self.main_module_rule = MainModuleRule(data['main_module'])
+        self.test_support_rule = TestSupportRule(data['test_support'])
 
 
 def generate_cmake_ver_part(rules):
@@ -206,9 +208,11 @@ def generate_compiler_part(rules):
     msvc = ''
     posix = ''
     if rules.platform_support_rule.support_windows:
-        msvc = _COMPILER_MSVC_TEMPLATE.format(cap_name=rules.project_rule.upper_name)
+        msvc = _COMPILER_MSVC_TEMPLATE.format(
+                cap_name=rules.project_rule.upper_name)
     if rules.platform_support_rule.support_posix:
-        posix = _COMPILER_POSIX_TEMPLATE.format(cap_name=rules.project_rule.upper_name)
+        posix = _COMPILER_POSIX_TEMPLATE.format(
+                cap_name=rules.project_rule.upper_name)
 
     if msvc != '' and posix != '':
         text += 'if(MSVC)\n'
@@ -218,12 +222,25 @@ def generate_compiler_part(rules):
         text += '\nendif()\n'
     else:
         text += msvc if msvc != '' else posix
+        text += '\n'
 
     return text
 
 
+def generate_clang_tidy_part(rules):
+    return _CLANG_TIDY_TEMPLATE.format(cap_name=rules.project_rule.upper_name)
+
+
 def generate_add_main_module_part(rules):
     return _ADD_MAIN_MODULE_TEMPLATE.format(name=rules.main_module_rule.name)
+
+
+def generate_test_part(rules):
+    if rules.test_support_rule.enabled:
+        return _TEST_SUPPORT_TEMPLATE.format(
+                cap_name=rules.project_rule.upper_name)
+    else:
+        return ''
 
 
 def generate_root_cmake_file(rules):
@@ -245,7 +262,12 @@ def generate_root_cmake_file(rules):
         f.write(generate_compiler_part(rules))
         f.write('\n')
 
+        f.write(generate_clang_tidy_part(rules))
+        f.write('\n')
+
         f.write(generate_add_main_module_part(rules))
+
+        f.write(generate_test_part(rules))
 
     print('[*] Done generating root CMakeLists.txt...')
 
@@ -334,30 +356,27 @@ def generate_main_module_cmake_file(rules):
     with open(path.join(main_dir, 'CMakeLists.txt'), 'w', newline='\n') as f:
         f.write('\n')
 
-        f.write(_MAIN_TARGET_TEMPLATE.format(name=rules.main_module_rule.name,
-                                             type=rules.main_module_rule.type))
-        f.write('\n')
+        f.write(_MAIN_TARGET_TEMPLATE.format(
+                name=rules.main_module_rule.name,
+                type=rules.main_module_rule.type,
+                low_proj_name=rules.project_rule.lower_name))
 
-        f.write(_MAIN_PROPERTY_TEMPLATE.format(low_proj_name=rules.project_rule.lower_name,
-                                               name=rules.main_module_rule.name))
-        f.write('\n')
-
-        if rules.platform_support_rule.support_windows and\
-                rules.main_module_rule.use_msvc_sa:
-            f.write(_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE.format(name=rules.main_module_rule.name,
-                                                               low_proj_name=rules.project_rule.lower_name,
-                                                               cap_proj_name=rules.project_rule.upper_name))
+        if rules.platform_support_rule.support_windows:
             f.write('\n')
-
-        if rules.platform_support_rule.support_windows and\
-                rules.main_module_rule.enable_msvc_ide_ca:
-            f.write(_MAIN_MSVC_IDE_CODE_ANALYSIS_TEMPLATE.format(name=rules.main_module_rule.name,))
-            f.write('\n')
+            f.write(_MAIN_MSVC_TEMPLATE_BEGIN.format(
+                    name=rules.main_module_rule.name))
+            if rules.main_module_rule.use_msvc_sa:
+                f.write(_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE.format(
+                        name=rules.main_module_rule.name,
+                        low_proj_name=rules.project_rule.lower_name,
+                        cap_proj_name=rules.project_rule.upper_name))
+            f.write(_MAIN_MSVC_TEMPLATE_END)
 
         if rules.pch_rule.enabled and rules.main_module_rule.use_pch:
-            f.write(_MAIN_USE_PCH_TEMPLATE.format(name=rules.main_module_rule.name,
-                                                  cap_proj_name=rules.project_rule.upper_name))
             f.write('\n')
+            f.write(_MAIN_USE_PCH_TEMPLATE.format(
+                    name=rules.main_module_rule.name,
+                    cap_proj_name=rules.project_rule.upper_name))
 
     print('[*] Done setting up CMakeLists.txt for main module')
 
@@ -366,6 +385,32 @@ def touch_main_source_file(rules):
     main_dir = rules.main_module_rule.name
     shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', 'main.cpp'),
                 path.join(main_dir, 'main.cpp'))
+
+
+def setup_tests(rules):
+    if not rules.test_support_rule.enabled:
+        return
+
+    print('[*] Setting up tests')
+
+    src_test_dir = path.join(path.dirname(path.abspath(__file__)),
+                             'scaffolds',
+                             'tests')
+    dest_dir = 'tests'
+    if not path.exists(dest_dir):
+        os.mkdir(dest_dir)
+
+    test_files = os.listdir(src_test_dir)
+    for file in test_files:
+        src = path.join(src_test_dir, file)
+        dest = path.join(dest_dir, file)
+        shutil.copy(src, dest)
+
+    replace_projname_for_files(path.join(dest_dir, 'CMakeLists.txt'),
+                               rules.project_rule.lower_name,
+                               rules.project_rule.upper_name)
+
+    print('[*] Done setting up tests')
 
 
 def setup_anvil_build_scripts(rule_file, rules):
@@ -413,6 +458,7 @@ def run_init_job(args):
     setup_cmake_module_folder(rules)
     setup_pch_files(rules)
     generate_main_module_cmake_file(rules)
+    setup_tests(rules)
     touch_main_source_file(rules)
     setup_anvil_build_scripts(args.rule_file, rules)
     setup_clang_format_file(args.rule_file)

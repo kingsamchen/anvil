@@ -73,7 +73,7 @@ class uniconf_subsystem():
         if self._clang_tidy:
             cmd.append('-D{PROJNAME}_ENABLE_CLANG_TIDY=ON')
 
-        if self._sanitizer:
+        if platform.system() != OS_WIN and self._sanitizer:
             cmd.append('-D{PROJNAME}_USE_SANITIZER=ON')
 
         cmd.append(f'-DCMAKE_BUILD_TYPE={self._build_type}')
@@ -128,7 +128,7 @@ class multiconf_subsystem():
         if self._clang_tidy:
             cmd.append('-D{PROJNAME}_ENABLE_CLANG_TIDY=ON')
 
-        if self._sanitizer:
+        if platform.system() != OS_WIN and self._sanitizer:
             cmd.append('-D{PROJNAME}_USE_SANITIZER=ON')
 
         cmd.append(f'-B "{self._out}"')
