@@ -95,21 +95,27 @@ target_link_libraries({name}
 {low_proj_name}_apply_common_compile_options({name})
 '''
 
-_MAIN_MSVC_TEMPLATE_BEGIN = '''if(MSVC)
-  get_target_property({name}_FILES {name} SOURCES)
-  source_group("{name}" FILES ${{{name}_FILES}})
-'''
-
-_MAIN_MSVC_TEMPLATE_END = '''endif()
-'''
-
-_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE = '''
+_MAIN_OPTIONS_TEMPLATE = '''# TODO: Edit at your will
+if(MSVC)
+  if({cap_proj_name}_USE_MSVC_PARALLEL_BUILD)
+    message(STATUS "USE_MSVC_PARALLEL_BUILD is ON")
+    {low_proj_name}_apply_msvc_parallel_build({name})
+  endif()
   if({cap_proj_name}_USE_MSVC_STATIC_ANALYSIS)
+    message(STATUS "USE_MSVC_STATIC_ANALYSIS is ON")
     {low_proj_name}_apply_msvc_static_analysis({name}
       WDL
         /wd6011 # Dereferencing potentially NULL pointer.
     )
   endif()
+  get_target_property({name}_FILES {name} SOURCES)
+  source_group("{name}" FILES ${{{name}_FILES}})
+else()
+  if({cap_proj_name}_USE_SANITIZER)
+    message(STATUS "USE_SANITIZER is ON")
+    {low_proj_name}_apply_sanitizer({name})
+  endif()
+endif()
 '''
 
 _MAIN_USE_PCH_TEMPLATE = '''target_precompile_headers({name}
@@ -361,16 +367,11 @@ def generate_main_module_cmake_file(rules):
                 type=rules.main_module_rule.type,
                 low_proj_name=rules.project_rule.lower_name))
 
-        if rules.platform_support_rule.support_windows:
-            f.write('\n')
-            f.write(_MAIN_MSVC_TEMPLATE_BEGIN.format(
-                    name=rules.main_module_rule.name))
-            if rules.main_module_rule.use_msvc_sa:
-                f.write(_MAIN_MSVC_STATIC_ANALYSIS_TEMPLATE.format(
-                        name=rules.main_module_rule.name,
-                        low_proj_name=rules.project_rule.lower_name,
-                        cap_proj_name=rules.project_rule.upper_name))
-            f.write(_MAIN_MSVC_TEMPLATE_END)
+        f.write('\n')
+        f.write(_MAIN_OPTIONS_TEMPLATE.format(
+                name=rules.main_module_rule.name,
+                low_proj_name=rules.project_rule.lower_name,
+                cap_proj_name=rules.project_rule.upper_name))
 
         if rules.pch_rule.enabled and rules.main_module_rule.use_pch:
             f.write('\n')
