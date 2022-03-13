@@ -1,6 +1,6 @@
 
 [cmake]
-    min_ver = "3.16"
+    min_ver = "3.17"
 
 [project]
     name = "Demo"
@@ -9,7 +9,7 @@
 [precompiled_header]
     enabled = true
     # `pch_file` path is relative the current project directory.
-    pch_file = "build/pch/precompile.h"
+    pch_file = "out/pch/precompile.h"
 
 [platform_support]
     windows = true
@@ -23,5 +23,8 @@
     use_pch = true
     # effective only if windows platform is enabled.
     use_msvc_static_analysis = true
-    # effective only if windows platform is enabled.
-    enable_msvc_ide_code_analysis = true
+
+[test_support]
+    enabled = true
+    # Unused. Currently only support doctest
+    # framework = "doctest"
