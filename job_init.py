@@ -34,6 +34,7 @@ endif()
 set({cap_name}_DIR ${{CMAKE_CURRENT_SOURCE_DIR}})
 set({cap_name}_CMAKE_DIR ${{{cap_name}_DIR}}/cmake)
 
+include(CTest)
 include(${{{cap_name}_CMAKE_DIR}}/CPM.cmake)
 
 message(STATUS "GENERATOR = " ${{CMAKE_GENERATOR}})'''
@@ -124,7 +125,6 @@ _MAIN_USE_PCH_TEMPLATE = '''target_precompile_headers({name}
 '''
 
 _TEST_SUPPORT_TEMPLATE = '''if({cap_name}_NOT_SUBPROJECT AND BUILD_TESTING)
-  include(CTest)
   add_subdirectory(tests)
 endif()
 '''
