@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Please run the script at the root of source directory.
-# Run python(3) anvil.py --help for details.
+# Run python(3) build.py --help for details.
 # Set environment variable:
 #  - `GENERATOR` for specifying generator; unset means using default one.
 #  - `CPM_SOURCE_CACHE` for caching source of dependencies by CPM.cmake.
@@ -13,6 +13,7 @@ import platform
 import shutil
 import subprocess
 
+from distutils.util import strtobool
 
 OS_WIN = 'Windows'
 
@@ -40,21 +41,23 @@ def selected_generator():
 
 def run_as_shell(args):
     cmd = ' '.join(args)
+    print(cmd)
     subprocess.run(cmd, shell=True)
 
 
 class uniconf_subsystem():
-    def __init__(self, generator, build_type, cpm_cache_dir):
-        self._gen = generator
-        self._build_type = build_type
+    def __init__(self, params):
+        self._gen = params['generator']
+        self._build_type = params['build_type']
 
         self._src = pathlib.Path(__file__).resolve().parent
 
-        dir_name = generator.strip().replace(' ', '-').lower() +\
-                   '-' + build_type
+        dir_name = self._gen.strip().replace(' ', '-').lower() +\
+                   '-' + self._build_type
         self._out = pathlib.Path(self._src) / 'out' / 'build' / dir_name
 
-        self._cpm_cache = cpm_cache_dir
+        self._cpm_cache = params['cpm_cache_dir']
+        self._clang_tidy = params['clang_tidy']
 
     def generate(self):
         cmd = ['cmake']
@@ -65,6 +68,9 @@ class uniconf_subsystem():
 
         if self._gen:
             cmd.append(f'-G "{self._gen}"')
+
+        if self._clang_tidy:
+            cmd.append(f'-DESL_ENABLE_CLANG_TIDY=ON')
 
         cmd.append(f'-DCMAKE_BUILD_TYPE={self._build_type}')
         cmd.append(f'-B "{self._out}"')
@@ -90,18 +96,19 @@ class uniconf_subsystem():
 
 
 class multiconf_subsystem():
-    def __init__(self, generator, build_type, cpm_cache_dir):
-        self._gen = generator
-        self._build_type = build_type
+    def __init__(self, params):
+        self._gen = params['generator']
+        self._build_type = params['build_type']
 
         self._src = pathlib.Path(__file__).resolve().parent
 
-        normed_gen = generator.strip().replace(' ', '-').lower()
+        normed_gen = self._gen.strip().replace(' ', '-').lower()
         if normed_gen == '' and platform.system() == OS_WIN:
             normed_gen = 'msvc'
         self._out = pathlib.Path(self._src) / 'out' / 'build' / normed_gen
 
-        self._cpm_cache = cpm_cache_dir
+        self._cpm_cache = params['cpm_cache_dir']
+        self._clang_tidy = params['clang_tidy']
 
     def generate(self):
         cmd = ['cmake']
@@ -112,6 +119,9 @@ class multiconf_subsystem():
 
         if self._gen:
             cmd.append(f'-G "{self._gen}"')
+
+        if self._clang_tidy:
+            cmd.append(f'-DESL_ENABLE_CLANG_TIDY=ON')
 
         cmd.append(f'-B "{self._out}"')
         cmd.append(f'-S "{self._src}"')
@@ -135,14 +145,16 @@ class multiconf_subsystem():
         run_as_shell(cmd)
 
 
-def create_build_subsystem(generator, build_type, cpm_cache_dir):
+def create_build_subsystem(params):
+    generator = params['generator']
+
     if generator == '' and platform.system() == OS_WIN:
-        return multiconf_subsystem('', build_type, cpm_cache_dir)
+        return multiconf_subsystem(params)
 
     if generator.startswith('Visual Studio'):
-        return multiconf_subsystem(generator, build_type, cpm_cache_dir)
+        return multiconf_subsystem(params)
 
-    return uniconf_subsystem(generator, build_type, cpm_cache_dir)
+    return uniconf_subsystem(params)
 
 
 def main():
@@ -156,19 +168,23 @@ def main():
     parser.add_argument('--clean', action='store_true', dest='clean_mode',
                         default=False, help='clean up the build (will be '
                         'ignored if --no-build is specified)')
+    parser.add_argument('--clang-tidy', dest='clang_tidy',
+                        type=lambda opt: bool(strtobool(opt)), default=True,
+                        help='enable clang-tidy on build')
     args = parser.parse_args()
 
     # Setup params
-    generator = selected_generator()
-    build_type = args.build_type
-    cpm_cache_dir = os.getenv('CPM_SOURCE_CACHE')
-    skip_build = args.skip_build
-    clean_mode = args.clean_mode
+    params = {'generator': selected_generator(),
+              'build_type': args.build_type,
+              'cpm_cache_dir': os.getenv('CPM_SOURCE_CACHE'),
+              'skip_build': args.skip_build,
+              'clean_mode': args.clean_mode,
+              'clang_tidy': args.clang_tidy}
 
-    subsys = create_build_subsystem(generator, build_type, cpm_cache_dir)
+    subsys = create_build_subsystem(params)
 
-    if clean_mode:
-        if skip_build:
+    if params['clean_mode']:
+        if params['skip_build']:
             print('[*] --clean is ignored because --no-build is specified')
         else:
             subsys.clean()
@@ -178,7 +194,7 @@ def main():
 
     subsys.generate()
 
-    if skip_build:
+    if params['skip_build']:
         print('[*] Generate project only, skip build')
         return
 

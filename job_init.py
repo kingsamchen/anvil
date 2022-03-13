@@ -357,7 +357,7 @@ def touch_main_source_file(rules):
 def setup_anvil_build_scripts(rule_file, rules):
     print('[*] Setting up anvil build scripts')
 
-    script_file = 'anvil.py'
+    script_file = 'build.py'
 
     shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', script_file),
                 path.join(path.dirname(rule_file), script_file))
