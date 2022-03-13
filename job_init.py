@@ -250,12 +250,12 @@ def generate_root_cmake_file(rules):
     print('[*] Done generating root CMakeLists.txt...')
 
 
-def replace_projname_for_cmakefile(filepath, real_project_name):
+def replace_projname_for_files(filepath, project_name, cap_project_name):
     with open(filepath, mode='r+', newline='\n') as f:
         lines = f.readlines()
-        for i, line in enumerate(lines):
-            if line.startswith('function('):
-                lines[i] = line.replace('{projname}', real_project_name)
+        for i, _ in enumerate(lines):
+            lines[i] = lines[i].replace('{projname}', project_name)
+            lines[i] = lines[i].replace('{PROJNAME}', cap_project_name)
         # Let's overwrite
         f.seek(0, os.SEEK_SET)
         f.writelines(lines)
@@ -269,24 +269,38 @@ def setup_cmake_module_folder(rules):
     if not path.exists(dest_dir):
         os.mkdir(dest_dir)
 
-    module_dir = path.join(path.dirname(path.abspath(__file__)), 'scaffolds', 'cmake_modules')
+    module_dir = path.join(path.dirname(path.abspath(__file__)),
+                           'scaffolds',
+                           'cmake_modules')
 
     if rules.platform_support_rule.support_posix:
         file = 'compiler_posix.cmake'
         target_path = path.join(dest_dir, file)
         shutil.copy(path.join(module_dir, file), target_path)
-        replace_projname_for_cmakefile(target_path, rules.project_rule.lower_name)
 
     if rules.platform_support_rule.support_windows:
         file = 'compiler_msvc.cmake'
         target_path = path.join(dest_dir, file)
         shutil.copy(path.join(module_dir, file), target_path)
-        replace_projname_for_cmakefile(target_path, rules.project_rule.lower_name)
 
-    special_files = ('compiler_posix.cmake', 'compiler_msvc.cmake', 'cotire.cmake',)
-    normal_files = filter(lambda name: name not in special_files, os.listdir(module_dir))
+    cond_files = ('compiler_posix.cmake', 'compiler_msvc.cmake',)
+    normal_files = filter(lambda name: name not in cond_files,
+                          os.listdir(module_dir))
     for file in normal_files:
         shutil.copy(path.join(module_dir, file), path.join(dest_dir, file))
+
+    # Replace project name placeholders with real name
+
+    files_need_replace = ('compiler_posix.cmake',
+                          'compiler_msvc.cmake',
+                          'clang_tidy.cmake',)
+    to_replace_files = filter(lambda name: name in files_need_replace,
+                              os.listdir(dest_dir))
+    for file in to_replace_files:
+        target_path = path.join(dest_dir, file)
+        replace_projname_for_files(target_path,
+                                   rules.project_rule.lower_name,
+                                   rules.project_rule.upper_name)
 
     print('[*] Done setting up cmake modules')
 
@@ -365,16 +379,26 @@ def setup_anvil_build_scripts(rule_file, rules):
     print('[*] Done setting up build scripts')
 
 
-def setup_clang_format_file(rule_file, rules):
+def setup_clang_format_file(rule_file):
     print('[*] Setting up clang-format file')
 
-    fmt = '.clang-format'
+    f = '.clang-format'
 
-    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', fmt),
-                path.join(path.dirname(rule_file), fmt))
+    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', f),
+                path.join(path.dirname(rule_file), f))
 
     print('[*] Done setting up .clang-format')
 
+
+def setup_clang_tidy_file(rule_file):
+    print('[*] Setting up clang-tidy file')
+
+    f = '.clang-tidy'
+
+    shutil.copy(path.join(path.dirname(path.abspath(__file__)), 'scaffolds', f),
+                path.join(path.dirname(rule_file), f))
+
+    print('[*] Done setting up .clang-tidy')
 
 def run_init_job(args):
     data = toml.load(args.rule_file)
@@ -385,4 +409,5 @@ def run_init_job(args):
     generate_main_module_cmake_file(rules)
     touch_main_source_file(rules)
     setup_anvil_build_scripts(args.rule_file, rules)
-    setup_clang_format_file(args.rule_file, rules)
+    setup_clang_format_file(args.rule_file)
+    setup_clang_tidy_file(args.rule_file)
