@@ -15,7 +15,11 @@ _CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n\n# Add POLICY below.\n'
 _PROJECT_TEMPLATE = '''# Detect if being bundled via sub-directory.
 if(NOT DEFINED PROJECT_NAME)
   set({cap_name}_NOT_SUBPROJECT ON)
+else()
+  set({cap_name}_NOT_SUBPROJECT OFF)
 endif()
+
+message(STATUS "{name} as root project = ${{{cap_name}_NOT_SUBPROJECT}}")
 
 project({name} CXX)
 
@@ -37,7 +41,7 @@ set({cap_name}_CMAKE_DIR ${{{cap_name}_DIR}}/cmake)
 include(CTest)
 include(${{{cap_name}_CMAKE_DIR}}/CPM.cmake)
 
-message(STATUS "GENERATOR = " ${{CMAKE_GENERATOR}})'''
+message(STATUS "{name} GENERATOR = " ${{CMAKE_GENERATOR}})'''
 
 _PCH_TEMPLATE = '''
 set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
@@ -45,19 +49,25 @@ set({cap_name}_PCH_HEADER ${{{cap_name}_DIR}}/{pch_file})
 
 _OUTPUT_CONFIG_TEMPLATE = '''# Output configurations.
 get_property(MULTICONF_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(MULTICONF_GENERATOR)
-  foreach(OUTPUTCONFIG_TYPE ${{CMAKE_CONFIGURATION_TYPES}})
-    string(TOUPPER ${{OUTPUTCONFIG_TYPE}} OUTPUTCONFIG)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/bin)
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/lib)
-  endforeach()
-else()
-  if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release")
+if({cap_name}_NOT_SUBPROJECT)
+  if(MULTICONF_GENERATOR)
+    foreach(OUTPUTCONFIG_TYPE ${{CMAKE_CONFIGURATION_TYPES}})
+      string(TOUPPER ${{OUTPUTCONFIG_TYPE}} OUTPUTCONFIG)
+      set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/bin)
+      set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${{OUTPUTCONFIG}} ${{CMAKE_BINARY_DIR}}/${{OUTPUTCONFIG_TYPE}}/lib)
+    endforeach()
+  else()
+    if(NOT CMAKE_BUILD_TYPE)
+      set(CMAKE_BUILD_TYPE "Release")
+    endif()
+    message(STATUS "{name} BUILD_TYPE = " ${{CMAKE_BUILD_TYPE}})
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/bin)
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/lib)
   endif()
-  message(STATUS "BUILD_TYPE = " ${{CMAKE_BUILD_TYPE}})
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/bin)
-  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${{CMAKE_BINARY_DIR}}/lib)
+else()
+  if(NOT MULTICONF_GENERATOR)
+    message(STATUS "{name} BUILD_TYPE = " ${{CMAKE_BUILD_TYPE}})
+  endif()
 endif()
 '''
 
@@ -99,11 +109,9 @@ target_link_libraries({name}
 _MAIN_OPTIONS_TEMPLATE = '''# TODO: Edit at your will
 if(MSVC)
   if({cap_proj_name}_USE_MSVC_PARALLEL_BUILD)
-    message(STATUS "USE_MSVC_PARALLEL_BUILD is ON")
     {low_proj_name}_apply_msvc_parallel_build({name})
   endif()
   if({cap_proj_name}_USE_MSVC_STATIC_ANALYSIS)
-    message(STATUS "USE_MSVC_STATIC_ANALYSIS is ON")
     {low_proj_name}_apply_msvc_static_analysis({name}
       WDL
         /wd6011 # Dereferencing potentially NULL pointer.
@@ -113,7 +121,6 @@ if(MSVC)
   source_group("{name}" FILES ${{{name}_FILES}})
 else()
   if({cap_proj_name}_USE_SANITIZER)
-    message(STATUS "USE_SANITIZER is ON")
     {low_proj_name}_apply_sanitizer({name})
   endif()
 endif()
@@ -205,7 +212,9 @@ def indent_lines(s, indent_size):
 
 def generate_output_conf_part(rules):
     _ = rules
-    return _OUTPUT_CONFIG_TEMPLATE.format()
+    return _OUTPUT_CONFIG_TEMPLATE.format(
+        cap_name=rules.project_rule.upper_name,
+        name=rules.project_rule.name)
 
 
 def generate_compiler_part(rules):

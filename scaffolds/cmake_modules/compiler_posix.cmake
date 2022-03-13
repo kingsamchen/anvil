@@ -12,6 +12,8 @@ if({PROJNAME}_NOT_SUBPROJECT)
   endif()
 endif()
 
+message(STATUS "{PROJNAME}_USE_SANITIZER = ${{PROJNAME}_USE_SANITIZER}")
+
 function({projname}_apply_common_compile_options TARGET)
   target_compile_definitions(${TARGET}
     PUBLIC
@@ -39,6 +41,8 @@ function({projname}_apply_common_compile_options TARGET)
 endfunction()
 
 function({projname}_apply_sanitizer TARGET)
+  message(STATUS "Apply {projname} sanitizer for ${TARGET}")
+
   target_compile_options(${TARGET}
     PRIVATE
       -fno-omit-frame-pointer

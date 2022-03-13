@@ -8,11 +8,11 @@ if({PROJNAME}_ENABLE_CLANG_TIDY)
   if(NOT CLANG_TIDY_EXE)
       message(STATUS "WARNING: clang-tidy Not found.")
   else()
-      message(STATUS "clang-tidy Enabled: ${CLANG_TIDY_EXE}")
+      message(STATUS "{PROJNAME}_ENABLE_CLANG_TIDY = ON: ${CLANG_TIDY_EXE}")
       set(CMAKE_CXX_CLANG_TIDY
           "${CLANG_TIDY_EXE}"
           -header-filter={projname}/)
   endif()
 else()
-  message(STATUS "clang-tidy Disabled")
+  message(STATUS "{PROJNAME}_ENABLE_CLANG_TIDY = OFF")
 endif()
