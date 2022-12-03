@@ -9,7 +9,6 @@ import shutil
 
 import toml
 
-
 _CMAKE_TEMPLATE = 'cmake_minimum_required(VERSION %s)\n\n# Add POLICY below.\n'
 
 _PROJECT_TEMPLATE = '''# Detect if being bundled via sub-directory.
@@ -72,14 +71,14 @@ endif()
 '''
 
 _COMPILER_MSVC_TEMPLATE = \
-        '''include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)'''
+    '''include(${{{cap_name}_CMAKE_DIR}}/compiler_msvc.cmake)'''
 
 _COMPILER_POSIX_TEMPLATE = \
-        '''include(${{{cap_name}_CMAKE_DIR}}/compiler_posix.cmake)'''
+    '''include(${{{cap_name}_CMAKE_DIR}}/compiler_posix.cmake)'''
 
 _CLANG_TIDY_TEMPLATE = \
-'''include(${{{cap_name}_CMAKE_DIR}}/clang_tidy.cmake)
-'''
+    '''include(${{{cap_name}_CMAKE_DIR}}/clang_tidy.cmake)
+    '''
 
 _ADD_MAIN_MODULE_TEMPLATE = 'add_subdirectory({name})\n'
 
@@ -135,6 +134,7 @@ _TEST_SUPPORT_TEMPLATE = '''if({cap_name}_NOT_SUBPROJECT AND BUILD_TESTING)
   add_subdirectory(tests)
 endif()
 '''
+
 
 class CMakeRule:
     def __init__(self, data):
@@ -224,10 +224,10 @@ def generate_compiler_part(rules):
     posix = ''
     if rules.platform_support_rule.support_windows:
         msvc = _COMPILER_MSVC_TEMPLATE.format(
-                cap_name=rules.project_rule.upper_name)
+            cap_name=rules.project_rule.upper_name)
     if rules.platform_support_rule.support_posix:
         posix = _COMPILER_POSIX_TEMPLATE.format(
-                cap_name=rules.project_rule.upper_name)
+            cap_name=rules.project_rule.upper_name)
 
     if msvc != '' and posix != '':
         text += 'if(MSVC)\n'
@@ -252,8 +252,8 @@ def generate_add_main_module_part(rules):
 
 def generate_test_part(rules):
     if rules.test_support_rule.enabled:
-        return _TEST_SUPPORT_TEMPLATE.format(
-                cap_name=rules.project_rule.upper_name)
+        return '\n' + _TEST_SUPPORT_TEMPLATE.format(
+            cap_name=rules.project_rule.upper_name)
     else:
         return ''
 
@@ -372,21 +372,21 @@ def generate_main_module_cmake_file(rules):
         f.write('\n')
 
         f.write(_MAIN_TARGET_TEMPLATE.format(
-                name=rules.main_module_rule.name,
-                type=rules.main_module_rule.type,
-                low_proj_name=rules.project_rule.lower_name))
+            name=rules.main_module_rule.name,
+            type=rules.main_module_rule.type,
+            low_proj_name=rules.project_rule.lower_name))
 
         f.write('\n')
         f.write(_MAIN_OPTIONS_TEMPLATE.format(
-                name=rules.main_module_rule.name,
-                low_proj_name=rules.project_rule.lower_name,
-                cap_proj_name=rules.project_rule.upper_name))
+            name=rules.main_module_rule.name,
+            low_proj_name=rules.project_rule.lower_name,
+            cap_proj_name=rules.project_rule.upper_name))
 
         if rules.pch_rule.enabled and rules.main_module_rule.use_pch:
             f.write('\n')
             f.write(_MAIN_USE_PCH_TEMPLATE.format(
-                    name=rules.main_module_rule.name,
-                    cap_proj_name=rules.project_rule.upper_name))
+                name=rules.main_module_rule.name,
+                cap_proj_name=rules.project_rule.upper_name))
 
     print('[*] Done setting up CMakeLists.txt for main module')
 
@@ -460,6 +460,7 @@ def setup_clang_tidy_file(rule_file):
                 path.join(path.dirname(rule_file), f))
 
     print('[*] Done setting up .clang-tidy')
+
 
 def run_init_job(args):
     data = toml.load(args.rule_file)
