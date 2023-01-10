@@ -46,18 +46,16 @@ Then:
 
 ```shell
 cd Demo
-anvil init "path-to-your-project-rules.toml"
+anvil init "path/to/your/project_rules.toml"
 ```
 
-Anvil would now create folders and files for you; and a copy of the used `project_rules.toml` alone with a `config.toml` will be placed into the `.anvil` folder under your project folder.
+Anvil would now create folders and whatever requested for you.
 
 ### Configure generation & build
 
-There are two script files both named `anvil` for quickly building your project.
+You can either use CMake commands directly to generate build files and then build your project; or you can use `build.py` which provides simpler commands for generating and building.
 
-`anvil.ps1` is for using Visual Studio on Windows, while `anvil.sh` is for unix-like systems.
-
-Run `help ./anvil` or `./anvil --help` for details.
+Run `python3 build.py --help` for details.
 
 ### Using Dependency Manager
 
