@@ -1,4 +1,4 @@
-CPMAddPackage("gh:onqtam/doctest#v2.4.8")
+CPMAddPackage("gh:onqtam/doctest#v2.4.9")
 
 add_executable({projname}_test)
 
@@ -12,22 +12,26 @@ target_link_libraries({projname}_test
     doctest
 )
 
-# {projname}_apply_common_compile_options({projname}_test)
+{projname}_apply_common_compile_options({projname}_test)
 
-# if(MSVC)
-#   get_target_property(test_FILES {projname}_test SOURCES)
-#   source_group("{projname}_test" FILES ${test_FILES})
-#
-#   if({PROJNAME}_USE_MSVC_PARALLEL_BUILD)
-#     {projname}_apply_msvc_parallel_build({projname}_test)
-#   endif()
-#   if({PROJNAME}_USE_MSVC_STATIC_ANALYSIS)
-#     {projname}_apply_msvc_static_analysis({projname}_test)
-#   endif()
-# else()
-#   if({PROJNAME}_USE_SANITIZER)
-#     {projname}_apply_sanitizer({projname}_test)
-#   endif()
-# endif()
+if({PROJNAME}_ENABLE_CLANG_TIDY)
+  {projname}_apply_clang_tidy({projname}_test)
+endif()
+
+if(MSVC)
+  if({PROJNAME}_USE_MSVC_PARALLEL_BUILD)
+    {projname}_apply_msvc_parallel_build({projname}_test)
+  endif()
+  if({PROJNAME}_USE_MSVC_STATIC_ANALYSIS)
+    {projname}_apply_msvc_static_analysis({projname}_test)
+  endif()
+else()
+  if({PROJNAME}_USE_SANITIZER)
+    {projname}_apply_sanitizer({projname}_test)
+  endif()
+endif()
+
+get_target_property(test_FILES {projname}_test SOURCES)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${test_FILES})
 
 add_test(NAME tests COMMAND {projname}_test)

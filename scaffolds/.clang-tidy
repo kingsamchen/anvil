@@ -14,8 +14,10 @@ Checks: >
   -bugprone-easily-swappable-parameters,
   -cppcoreguidelines-avoid-c-arrays,
   -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-bounds-constant-array-index,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
   -cppcoreguidelines-pro-type-vararg,
   -misc-no-recursion,
   -modernize-avoid-c-arrays,
@@ -29,8 +31,8 @@ Checks: >
   -readability-qualified-auto,
   -readability-redundant-access-specifiers
 
-WarningsAsErrors: ''
-HeaderFilterRegex: ''
+WarningsAsErrors: '*'
+HeaderFilterRegex: '(folder1|folder2)\/.*\.h$'
 
 CheckOptions:
   - key: cppcoreguidelines-macro-usage.CheckCapsOnly

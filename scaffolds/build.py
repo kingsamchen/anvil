@@ -13,9 +13,24 @@ import platform
 import shutil
 import subprocess
 
-from distutils.util import strtobool
-
 OS_WIN = 'Windows'
+
+
+# `distuils` is deprecated and will be removed since 3.12. Let's retain the
+# function.
+def strtobool(val):
+    """Convert a string representation of truth to true (1) or false (0).
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError("invalid truth value %r" % (val,))
 
 
 def default_generator():
@@ -124,9 +139,6 @@ class multiconf_subsystem():
 
         if self._gen:
             cmd.append(f'-G "{self._gen}"')
-
-        if self._clang_tidy:
-            cmd.append('-D{PROJNAME}_ENABLE_CLANG_TIDY=ON')
 
         clang_tidy = 'ON' if self._clang_tidy else 'OFF'
         cmd.append(f'-D{PROJNAME}_ENABLE_CLANG_TIDY={clang_tidy}')

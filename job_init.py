@@ -28,6 +28,7 @@ if({cap_name}_NOT_SUBPROJECT)
   set(CMAKE_CXX_STANDARD {cxx_standard})
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
   set(ROOT_DIR ${{CMAKE_SOURCE_DIR}})
 endif()
@@ -78,7 +79,7 @@ _COMPILER_POSIX_TEMPLATE = \
 
 _CLANG_TIDY_TEMPLATE = \
     '''include(${{{cap_name}_CMAKE_DIR}}/clang_tidy.cmake)
-    '''
+'''
 
 _ADD_MAIN_MODULE_TEMPLATE = 'add_subdirectory({name})\n'
 
@@ -105,7 +106,11 @@ target_link_libraries({name}
 {low_proj_name}_apply_common_compile_options({name})
 '''
 
-_MAIN_OPTIONS_TEMPLATE = '''# TODO: Edit at your will
+_MAIN_OPTIONS_TEMPLATE = '''if({cap_proj_name}_ENABLE_CLANG_TIDY)
+  {low_proj_name}_apply_clang_tidy({name})
+endif()
+
+# TODO: Edit at your will
 if(MSVC)
   if({cap_proj_name}_USE_MSVC_PARALLEL_BUILD)
     {low_proj_name}_apply_msvc_parallel_build({name})
@@ -116,13 +121,14 @@ if(MSVC)
         /wd6011 # Dereferencing potentially NULL pointer.
     )
   endif()
-  get_target_property({name}_FILES {name} SOURCES)
-  source_group("{name}" FILES ${{{name}_FILES}})
 else()
   if({cap_proj_name}_USE_SANITIZER)
     {low_proj_name}_apply_sanitizer({name})
   endif()
 endif()
+
+get_target_property({name}_FILES {name} SOURCES)
+source_group(TREE ${{CMAKE_CURRENT_SOURCE_DIR}} FILES ${{{name}_FILES}})
 '''
 
 _MAIN_USE_PCH_TEMPLATE = '''target_precompile_headers({name}
