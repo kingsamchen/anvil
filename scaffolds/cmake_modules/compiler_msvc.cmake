@@ -1,6 +1,6 @@
 
 option({PROJNAME}_USE_MSVC_PARALLEL_BUILD "If enabled, build multiple files in parallel." ON)
-option({PROJNAME}_USE_MSVC_STATIC_ANALYSIS "If enabled, run MSVC built-in static analysis and generate appropriate warnings" ON)
+option({PROJNAME}_USE_MSVC_STATIC_ANALYSIS "If enabled, run MSVC built-in static analysis and generate appropriate warnings" OFF)
 option({PROJNAME}_USE_WIN32_LEAN_AND_MEAN "If enabled, define WIN32_LEAN_AND_MEAN" ON)
 
 if({PROJNAME}_NOT_SUBPROJECT)
@@ -12,7 +12,7 @@ if({PROJNAME}_NOT_SUBPROJECT)
 endif()
 
 message(STATUS "{PROJNAME}_USE_MSVC_PARALLEL_BUILD = ${{PROJNAME}_USE_MSVC_PARALLEL_BUILD}")
-message(STATUS "{PROJNAME}_USE_MSVC_STATIC_ANALYSIS = ${PROJNAME}_USE_MSVC_STATIC_ANALYSIS}")
+message(STATUS "{PROJNAME}_USE_MSVC_STATIC_ANALYSIS = ${{PROJNAME}_USE_MSVC_STATIC_ANALYSIS}")
 message(STATUS "{PROJNAME}_USE_WIN32_LEAN_AND_MEAN = ${{PROJNAME}_USE_WIN32_LEAN_AND_MEAN}")
 
 function({projname}_apply_common_compile_options TARGET)
