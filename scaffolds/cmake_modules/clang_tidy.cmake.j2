@@ -1,8 +1,11 @@
+{#
+  - PROJNAME: project name in uppercase
+  - projname: project name in lowercase
+#}
+option({{ PROJNAME }}_ENABLE_CLANG_TIDY "Enable clang-tidy on build" OFF)
+message(STATUS "{{ PROJNAME }}_ENABLE_CLANG_TIDY = ${{ '{' }}{{ PROJNAME }}_ENABLE_CLANG_TIDY}")
 
-option({PROJNAME}_ENABLE_CLANG_TIDY "Enable clang-tidy on build" OFF)
-message(STATUS "{PROJNAME}_ENABLE_CLANG_TIDY = ${{PROJNAME}_ENABLE_CLANG_TIDY}")
-
-if({PROJNAME}_ENABLE_CLANG_TIDY)
+if({{ PROJNAME }}_ENABLE_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE
                NAMES clang-tidy
                DOC "Path to clang-tidy executable"
@@ -10,8 +13,8 @@ if({PROJNAME}_ENABLE_CLANG_TIDY)
   message(STATUS "Found clang-tidy = ${CLANG_TIDY_EXE}")
 endif()
 
-function({projname}_apply_clang_tidy TARGET)
-  message(STATUS "Apply {projname} clang-tidy for ${TARGET}")
+function({{ projname }}_apply_clang_tidy TARGET)
+  message(STATUS "Apply {{ projname }} clang-tidy for ${TARGET}")
 
   if(MSVC AND CMAKE_GENERATOR MATCHES "Visual Studio")
     set_target_properties(${TARGET} PROPERTIES

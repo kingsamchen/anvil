@@ -1,3 +1,6 @@
+{#
+  - main_module_name: name of the main module
+-#}
 ---
 Checks: >
   -*,
@@ -13,7 +16,9 @@ Checks: >
   readability-*,
   -bugprone-easily-swappable-parameters,
   -cppcoreguidelines-avoid-c-arrays,
+  -cppcoreguidelines-avoid-do-while,
   -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
   -cppcoreguidelines-owning-memory,
   -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
   -cppcoreguidelines-pro-bounds-constant-array-index,
@@ -32,7 +37,7 @@ Checks: >
   -readability-redundant-access-specifiers
 
 WarningsAsErrors: '*'
-HeaderFilterRegex: '(folder1|folder2)\/.*\.h$'
+HeaderFilterRegex: '({{ main_module_name }})\/.*\.h$'
 
 CheckOptions:
   - key: cppcoreguidelines-macro-usage.CheckCapsOnly

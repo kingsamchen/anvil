@@ -1,3 +1,6 @@
+{#
+  - PROJNAME: project name in uppercase
+-#}
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Please run the script at the root of source directory.
@@ -60,20 +63,23 @@ def run_as_shell(args):
     subprocess.run(cmd, shell=True)
 
 
+#
+# Build Logics
+#
+
+
 class uniconf_subsystem():
     def __init__(self, params):
         self._gen = params['generator']
         self._build_type = params['build_type']
-
-        self._src = pathlib.Path(__file__).resolve().parent
-
-        dir_name = self._gen.strip().replace(' ', '-').lower() +\
-                   '-' + self._build_type
-        self._out = pathlib.Path(self._src) / 'out' / 'build' / dir_name
-
+        self._rebuild = params['rebuild']
         self._cpm_cache = params['cpm_cache_dir']
         self._clang_tidy = params['clang_tidy']
         self._sanitizer = params['sanitizer']
+
+        self._src = pathlib.Path(__file__).resolve().parent
+        dir_name = self._gen.strip().replace(' ', '-') + '-' + self._build_type
+        self._out = pathlib.Path(self._src) / 'out' / dir_name
 
     def generate(self):
         cmd = ['cmake']
@@ -86,10 +92,10 @@ class uniconf_subsystem():
             cmd.append(f'-G "{self._gen}"')
 
         clang_tidy = 'ON' if self._clang_tidy else 'OFF'
-        cmd.append(f'-D{PROJNAME}_ENABLE_CLANG_TIDY={clang_tidy}')
+        cmd.append(f'-D{{ PROJNAME }}_ENABLE_CLANG_TIDY={clang_tidy}')
 
         sanitizer = 'ON' if self._sanitizer else 'OFF'
-        cmd.append(f'-D{PROJNAME}_USE_SANITIZER={sanitizer}')
+        cmd.append(f'-D{{ PROJNAME }}_USE_SANITIZER={sanitizer}')
 
         cmd.append(f'-DCMAKE_BUILD_TYPE={self._build_type}')
         cmd.append(f'-B "{self._out}"')
@@ -98,18 +104,15 @@ class uniconf_subsystem():
         run_as_shell(cmd)
 
     def build(self):
-        thread_num = os.cpu_count() + 2
+        thread_num = os.cpu_count()
         cmd = ['cmake',
                f'--build "{self._out}"',
-               f'--verbose',
-               f'-- -j {thread_num}']
+               f'--parallel {thread_num}']
 
-        run_as_shell(cmd)
+        if self._rebuild:
+            cmd.append('--clean-first')
 
-    def clean(self):
-        cmd = ['cmake',
-               f'--build "{self._out}"',
-               '--target clean']
+        cmd.append('--verbose')
 
         run_as_shell(cmd)
 
@@ -118,17 +121,17 @@ class multiconf_subsystem():
     def __init__(self, params):
         self._gen = params['generator']
         self._build_type = params['build_type']
-
-        self._src = pathlib.Path(__file__).resolve().parent
-
-        normed_gen = self._gen.strip().replace(' ', '-').lower()
-        if normed_gen == '' and platform.system() == OS_WIN:
-            normed_gen = 'msvc'
-        self._out = pathlib.Path(self._src) / 'out' / 'build' / normed_gen
-
+        self._rebuild = params['rebuild']
         self._cpm_cache = params['cpm_cache_dir']
         self._clang_tidy = params['clang_tidy']
         self._sanitizer = params['sanitizer']
+
+        self._src = pathlib.Path(__file__).resolve().parent
+
+        normed_gen = self._gen.strip().replace(' ', '-')
+        if normed_gen == '' and platform.system() == OS_WIN:
+            normed_gen = 'msvc'
+        self._out = pathlib.Path(self._src) / 'out' / normed_gen
 
     def generate(self):
         cmd = ['cmake']
@@ -141,7 +144,7 @@ class multiconf_subsystem():
             cmd.append(f'-G "{self._gen}"')
 
         clang_tidy = 'ON' if self._clang_tidy else 'OFF'
-        cmd.append(f'-D{PROJNAME}_ENABLE_CLANG_TIDY={clang_tidy}')
+        cmd.append(f'-D{{ PROJNAME }}_ENABLE_CLANG_TIDY={clang_tidy}')
 
         cmd.append(f'-B "{self._out}"')
         cmd.append(f'-S "{self._src}"')
@@ -149,18 +152,16 @@ class multiconf_subsystem():
         run_as_shell(cmd)
 
     def build(self):
-        cmd = ['cmake',
-               f'--build "{self._out}"',
-               f'--verbose',
-               f'--config {self._build_type}']
-
-        run_as_shell(cmd)
-
-    def clean(self):
+        thread_num = os.cpu_count()
         cmd = ['cmake',
                f'--build "{self._out}"',
                f'--config {self._build_type}',
-               '--target clean']
+               f'--parallel {thread_num}']
+
+        if self._rebuild:
+            cmd.append('--clean-first')
+
+        cmd.append('--verbose')
 
         run_as_shell(cmd)
 
@@ -185,14 +186,14 @@ def main():
     parser.add_argument('--no-build', action='store_true',
                         dest='skip_build', default=False,
                         help='generate only')
-    parser.add_argument('--clean', action='store_true', dest='clean_mode',
-                        default=False, help='clean up the build (will be '
+    parser.add_argument('--rebuild', action='store_true', dest='rebuild',
+                        default=False, help='clean first before build (will be '
                         'ignored if --no-build is specified)')
     parser.add_argument('--clang-tidy', dest='clang_tidy',
-                        type=lambda opt: bool(strtobool(opt)), default=True,
+                        type=lambda opt: bool(strtobool(opt)), default=False,
                         help='enable clang-tidy on build')
     parser.add_argument('--sanitizer', dest='sanitizer',
-                        type=lambda opt: bool(strtobool(opt)), default=True,
+                        type=lambda opt: bool(strtobool(opt)), default=False,
                         help='enable asan & ubsan')
     args = parser.parse_args()
 
@@ -201,18 +202,11 @@ def main():
               'build_type': args.build_type,
               'cpm_cache_dir': os.getenv('CPM_SOURCE_CACHE'),
               'skip_build': args.skip_build,
-              'clean_mode': args.clean_mode,
+              'rebuild': args.rebuild,
               'clang_tidy': args.clang_tidy,
               'sanitizer': args.sanitizer,}
 
     subsys = create_build_subsystem(params)
-
-    if params['clean_mode']:
-        if params['skip_build']:
-            print('[*] --clean is ignored because --no-build is specified')
-        else:
-            subsys.clean()
-            return
 
     # Generate or build.
 
@@ -223,7 +217,6 @@ def main():
         return
 
     subsys.build()
-
 
 if __name__ == '__main__':
     main()

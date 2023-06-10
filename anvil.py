@@ -6,7 +6,7 @@ import argparse
 
 import job_init
 
-VER = '0.7.1'
+VER = '0.8.0'
 
 
 def show_anvil_version(_):

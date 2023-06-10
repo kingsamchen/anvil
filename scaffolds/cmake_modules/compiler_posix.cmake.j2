@@ -1,8 +1,11 @@
+{#
+  - PROJNAME: project name in uppercase
+  - projname: project name in lowercase
+#}
+option({{ PROJNAME }}_USE_SANITIZER "If enabled, activate address_sanitizer and ub_sanitizer" OFF)
 
-option({PROJNAME}_USE_SANITIZER "If enabled, activate address_sanitizer and ub_sanitizer" OFF)
-
-if({PROJNAME}_NOT_SUBPROJECT)
-  message(STATUS "{projname} compiler POSIX global conf is in active")
+if({{ PROJNAME }}_NOT_SUBPROJECT)
+  message(STATUS "{{ projname }} compiler POSIX global conf is in active")
 
   # Force generating debugging symbols in Release build.
   # Also keep STL debugging symbols for clang builds.
@@ -12,9 +15,9 @@ if({PROJNAME}_NOT_SUBPROJECT)
   endif()
 endif()
 
-message(STATUS "{PROJNAME}_USE_SANITIZER = ${{PROJNAME}_USE_SANITIZER}")
+message(STATUS "{{ PROJNAME }}_USE_SANITIZER = ${{ '{' }}{{ PROJNAME }}_USE_SANITIZER}")
 
-function({projname}_apply_common_compile_options TARGET)
+function({{ projname }}_apply_common_compile_options TARGET)
   target_compile_definitions(${TARGET}
     PUBLIC
       $<$<CONFIG:DEBUG>:
@@ -26,22 +29,21 @@ function({projname}_apply_common_compile_options TARGET)
     PRIVATE
       -Wall
       -Wextra
-      -Wno-deprecated
-      -Wno-deprecated-declarations
-      -Wno-sign-compare
-      -Wno-unused
-      -Wno-unused-parameter
+      -Werror
+      -Wconversion
+      -Wdouble-promotion
       -Wold-style-cast
       -Woverloaded-virtual
       -Wpointer-arith
       -Wshadow
-      -Wunused-label
-      -Wunused-result
+      -Wsign-conversion
+      -Wno-unused-function
+      -Wno-error=deprecated
   )
 endfunction()
 
-function({projname}_apply_sanitizer TARGET)
-  message(STATUS "Apply {projname} sanitizer for ${TARGET}")
+function({{ projname }}_apply_sanitizer TARGET)
+  message(STATUS "Apply {{ projname }} sanitizer for ${TARGET}")
 
   target_compile_options(${TARGET}
     PRIVATE
