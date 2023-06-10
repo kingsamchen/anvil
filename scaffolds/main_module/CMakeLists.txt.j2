@@ -1,0 +1,60 @@
+{#
+  - PROJNAME: project name in uppercase
+  - projname: project name in lowercase
+  - module.type: executable or library
+  - module.name: main module name
+  - module.use_pch: true/false
+#}
+add_{{ module.type }}({{ module.name }})
+
+target_sources({{ module.name }}
+  PRIVATE
+    main.cpp
+
+  $<$<BOOL:${WIN32}>:
+  >
+
+  $<$<NOT:$<BOOL:${WIN32}>>:
+  >
+)
+
+target_include_directories({{ module.name }}
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../
+)
+
+target_link_libraries({{ module.name }}
+)
+
+{{ projname }}_apply_common_compile_options({{ module.name }})
+
+if({{ PROJNAME }}_ENABLE_CLANG_TIDY)
+  {{ projname }}_apply_clang_tidy({{ module.name }})
+endif()
+
+# TODO: Edit at your will
+if(MSVC)
+  if({{ PROJNAME }}_USE_MSVC_PARALLEL_BUILD)
+    {{ projname }}_apply_msvc_parallel_build({{ module.name }})
+  endif()
+  if({{ PROJNAME }}_USE_MSVC_STATIC_ANALYSIS)
+    {{ projname }}_apply_msvc_static_analysis({{ module.name }}
+      WDL
+        /wd6011 # Dereferencing potentially NULL pointer.
+    )
+  endif()
+else()
+  if({{ PROJNAME }}_USE_SANITIZER)
+    {{ projname }}_apply_sanitizer({{ module.name }})
+  endif()
+endif()
+
+get_target_property({{ module.name }}_FILES {{ module.name }} SOURCES)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${{ '{' }}{{ module.name }}_FILES})
+
+{%- if module.use_pch %}
+
+target_precompile_headers({{ module.name }}
+  PRIVATE "${{ '{' }}{{ PROJNAME }}_PCH_HEADER}"
+)
+
+{%- endif %}

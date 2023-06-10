@@ -1,6 +1,6 @@
 
 [cmake]
-    min_ver = "3.17"
+    min_ver = "3.19"
 
 [project]
     name = "Demo"
