@@ -1,15 +1,20 @@
 
 [cmake]
-    min_ver = "3.19"
+    min_ver = "3.21"
+    use_presets = true
 
 [project]
     name = "Demo"
     cxx_standard = "17"
 
+[package_manager]
+    use_cpm = false
+    use_vcpkg = true
+
 [precompiled_header]
     enabled = true
     # `pch_file` path is relative the current project directory.
-    pch_file = "out/pch/precompile.h"
+    pch_file = "build/pch/precompile.h"
 
 [platform_support]
     windows = true

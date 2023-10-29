@@ -1,6 +1,6 @@
-/*
- @ Kingsley Chen
-*/
+//
+// 0xCCCCCCCC
+//
 
 // Add frequently used header files or remove header files that are less frequently
 // used during project evolvement.

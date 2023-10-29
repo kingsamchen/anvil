@@ -4,6 +4,7 @@
   - name: project name
   - module_name: main module name
   - cxx_standard: used standard
+  - use_cpm: true/false
   - use_pch: true/false
   - pch_file: relative path to the pch file
   - on_windows: true/false
@@ -42,7 +43,9 @@ set({{ PROJNAME }}_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 set({{ PROJNAME }}_CMAKE_DIR ${{ '{' }}{{ PROJNAME }}_DIR}/cmake)
 
 include(CTest)
+{%- if use_cpm %}
 include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/CPM.cmake)
+{%- endif %}
 
 message(STATUS "{{ name }} GENERATOR = " ${CMAKE_GENERATOR})
 
