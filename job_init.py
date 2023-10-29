@@ -19,6 +19,7 @@ def get_scaffolds_dir():
 class CMakeRule:
     def __init__(self, data):
         self.min_ver = data['min_ver']
+        self.use_presets = data['use_presets']
 
 
 class ProjectRule:
@@ -29,6 +30,12 @@ class ProjectRule:
         self.upper_name = str.upper(self.name).replace('-', '_')
         self.lower_name = str.lower(self.name).replace('-', '_')
         self.cxx_standard = data['cxx_standard']
+
+
+class PackageManagerRule:
+    def __init__(self, data):
+        self.use_cpm = data['use_cpm']
+        self.use_vcpkg = data['use_vcpkg']
 
 
 class PCHRule:
@@ -60,6 +67,7 @@ class Rules:
     def __init__(self, data):
         self.cmake_rule = CMakeRule(data['cmake'])
         self.project_rule = ProjectRule(data['project'])
+        self.package_manager_rule = PackageManagerRule(data['package_manager'])
         self.pch_rule = PCHRule(data['precompiled_header'])
         self.platform_support_rule = PlatformSupportRule(
             data['platform_support'])
@@ -79,6 +87,7 @@ def generate_root_cmake_file(rules):
         name=rules.project_rule.name,
         module_name=rules.main_module_rule.name,
         cxx_standard=rules.project_rule.cxx_standard,
+        use_cpm=rules.package_manager_rule.use_cpm,
         use_pch=rules.pch_rule.enabled,
         pch_file=rules.pch_rule.pch_file,
         on_windows=rules.platform_support_rule.support_windows,
@@ -219,13 +228,22 @@ def setup_tests(rules):
 def setup_anvil_build_scripts(rule_file, rules):
     print('[*] Setting up anvil build scripts')
 
-    src = pathlib.Path(__file__).resolve().parent / 'scaffolds' / 'build.py.j2'
-    dest = pathlib.Path(rule_file).parent / 'build.py'
+    if rules.cmake_rule.use_presets:
+        f = 'CMakePresets.json'
 
-    tp = jinja2.Template(src.read_bytes().decode())
-    out = tp.render(PROJNAME=rules.project_rule.upper_name)
+        shutil.copy(path.join(path.dirname(path.abspath(__file__)),
+                              'scaffolds',
+                              f),
+                    path.join(path.dirname(rule_file), f))
+    else:
+        src = pathlib.Path(__file__).resolve().parent / \
+            'scaffolds' / 'build.py.j2'
+        dest = pathlib.Path(rule_file).parent / 'build.py'
 
-    dest.write_bytes(out.encode())
+        tp = jinja2.Template(src.read_bytes().decode())
+        out = tp.render(PROJNAME=rules.project_rule.upper_name)
+
+        dest.write_bytes(out.encode())
 
     print('[*] Done setting up build scripts')
 
@@ -254,6 +272,22 @@ def setup_clang_tidy_file(rule_file, rules):
     print('[*] Done setting up .clang-tidy')
 
 
+def setup_vcpkg_manifest(rule_file, rules):
+    if not rules.package_manager_rule.use_vcpkg:
+        return
+
+    print('[*] Setting up vcpkg manifest file')
+
+    src = pathlib.Path(__file__).resolve().parent / 'scaffolds' \
+        / 'vcpkg.json.j2'
+    dest = pathlib.Path(rule_file).parent / 'vcpkg.json'
+    tp = jinja2.Template(src.read_bytes().decode())
+    dest.write_bytes(
+        tp.render(projname=rules.project_rule.lower_name).encode())
+
+    print('[*] Done setting up vcpkg manifest file')
+
+
 def run_init_job(args):
     data = toml.load(args.rule_file)
     rules = Rules(data)
@@ -266,3 +300,4 @@ def run_init_job(args):
     setup_anvil_build_scripts(args.rule_file, rules)
     setup_clang_format_file(args.rule_file)
     setup_clang_tidy_file(args.rule_file, rules)
+    setup_vcpkg_manifest(args.rule_file, rules)
