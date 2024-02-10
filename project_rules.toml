@@ -1,7 +1,6 @@
 
 [cmake]
     min_ver = "3.21"
-    use_presets = true
 
 [project]
     name = "Demo"
