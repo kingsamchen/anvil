@@ -1,0 +1,143 @@
+{#-
+  - PROJNAME: project name in uppercase
+  - use_cpm: true/false
+  - use_vcpkg: true/false
+-#}
+{
+    "version": 6,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 25,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "linux-release",
+            "displayName": "Linux Release",
+            "description": "Release build on Linux",
+            "generator": "Ninja Multi-Config",
+            "binaryDir": "${sourceDir}/out/${presetName}",
+            {%- if use_vcpkg %}
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            {%- endif %}
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Release",
+                {%- if use_cpm %}
+                "CPM_SOURCE_CACHE": "$env{CPM_SOURCE_CACHE}",
+                {%- endif %}
+                "{{ PROJNAME }}_USE_SANITIZER": "ON",
+                "{{ PROJNAME }}_ENABLE_CLANG_TIDY": "ON"
+            }
+        },
+        {
+            "name": "linux-dev",
+            "inherits": "linux-release",
+            "displayName": "Linux Dev",
+            "description": "Dev build on Linux",
+            "cacheVariables": {
+                "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+                "{{ PROJNAME }}_ENABLE_CLANG_TIDY": "OFF"
+            }
+        },
+        {
+            "name": "windows-release",
+            "displayName": "Windows Release",
+            "description": "Release build on Windows",
+            "binaryDir": "${sourceDir}/out/${presetName}",
+            {%- if use_vcpkg %}
+            "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+            {%- endif %}
+            "cacheVariables": {
+                {%- if use_cpm %}
+                "CPM_SOURCE_CACHE": "$env{CPM_SOURCE_CACHE}",
+                {%- endif %}
+                "{{ PROJNAME }}_ENABLE_CLANG_TIDY": "ON",
+                "{{ PROJNAME }}_USE_MSVC_STATIC_ANALYSIS": "ON"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "windows-dev",
+            "inherits": "windows-release",
+            "displayName": "Windows Dev",
+            "description": "Dev build on Windows",
+            "cacheVariables": {
+                "{{ PROJNAME }}_ENABLE_CLANG_TIDY": "OFF",
+                "{{ PROJNAME }}_USE_MSVC_STATIC_ANALYSIS": "OFF"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "linux-release",
+            "configurePreset": "linux-release",
+            "configuration": "Release",
+            "cleanFirst": true,
+            "verbose": true
+        },
+        {
+            "name": "windows-release",
+            "inherits": "linux-release",
+            "configurePreset": "windows-release"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "linux-release",
+            "configurePreset": "linux-release",
+            "configuration": "Release",
+            "output": {
+                "outputOnFailure": true
+            },
+            "execution": {
+                "noTestsAction": "error",
+                "stopOnFailure": true
+            }
+        },
+        {
+            "name": "windows-release",
+            "inherits": "linux-release",
+            "configurePreset": "windows-release"
+        }
+    ],
+    "workflowPresets": [
+        {
+            "name": "linux-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "linux-release"
+                },
+                {
+                    "type": "build",
+                    "name": "linux-release"
+                },
+                {
+                    "type": "test",
+                    "name": "linux-release"
+                }
+            ]
+        },
+        {
+            "name": "windows-release",
+            "steps": [
+                {
+                    "type": "configure",
+                    "name": "windows-release"
+                },
+                {
+                    "type": "build",
+                    "name": "windows-release"
+                },
+                {
+                    "type": "test",
+                    "name": "windows-release"
+                }
+            ]
+        }
+    ]
+}

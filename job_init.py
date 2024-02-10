@@ -19,7 +19,6 @@ def get_scaffolds_dir():
 class CMakeRule:
     def __init__(self, data):
         self.min_ver = data['min_ver']
-        self.use_presets = data['use_presets']
 
 
 class ProjectRule:
@@ -225,27 +224,21 @@ def setup_tests(rules):
     print('[*] Done setting up tests')
 
 
-def setup_anvil_build_scripts(rule_file, rules):
-    print('[*] Setting up anvil build scripts')
+def setup_cmake_presets(rule_file, rules):
+    print('[*] Setting up CMake Presets')
 
-    if rules.cmake_rule.use_presets:
-        f = 'CMakePresets.json'
+    src = pathlib.Path(__file__).resolve().parent / \
+        'scaffolds' / 'CMakePresets.json.j2'
+    dest = pathlib.Path(rule_file).parent / 'CMakePresets.json'
 
-        shutil.copy(path.join(path.dirname(path.abspath(__file__)),
-                              'scaffolds',
-                              f),
-                    path.join(path.dirname(rule_file), f))
-    else:
-        src = pathlib.Path(__file__).resolve().parent / \
-            'scaffolds' / 'build.py.j2'
-        dest = pathlib.Path(rule_file).parent / 'build.py'
+    tp = jinja2.Template(src.read_bytes().decode())
+    out = tp.render(PROJNAME=rules.project_rule.upper_name,
+                    use_cpm=rules.package_manager_rule.use_cpm,
+                    use_vcpkg=rules.package_manager_rule.use_vcpkg)
 
-        tp = jinja2.Template(src.read_bytes().decode())
-        out = tp.render(PROJNAME=rules.project_rule.upper_name)
+    dest.write_bytes(out.encode())
 
-        dest.write_bytes(out.encode())
-
-    print('[*] Done setting up build scripts')
+    print('[*] Done setting up CMake Presets')
 
 
 def setup_clang_format_file(rule_file):
@@ -297,7 +290,7 @@ def run_init_job(args):
     generate_main_module_cmake_file(rules)
     setup_tests(rules)
     touch_main_source_file(rules)
-    setup_anvil_build_scripts(args.rule_file, rules)
+    setup_cmake_presets(args.rule_file, rules)
     setup_clang_format_file(args.rule_file)
     setup_clang_tidy_file(args.rule_file, rules)
     setup_vcpkg_manifest(args.rule_file, rules)
