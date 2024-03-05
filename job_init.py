@@ -97,7 +97,7 @@ def generate_root_cmake_file(rules):
     print('[*] Done generating root CMakeLists.txt...')
 
 
-def setup_cmake_module_folder(rules):
+def setup_cmake_module_folder(rules: Rules):
     print('[*] Setting up cmake modules')
 
     dest_dir = 'cmake'
@@ -108,6 +108,10 @@ def setup_cmake_module_folder(rules):
                            'scaffolds',
                            'cmake_modules')
 
+    if rules.package_manager_rule.use_cpm:
+        dest_path = path.join(dest_dir, 'CPM.cmake')
+        shutil.copy(path.join(module_dir, 'CPM.cmake'), dest_path)
+
     if rules.platform_support_rule.support_posix:
         dest_path = path.join(dest_dir, 'compiler_posix.cmake')
         shutil.copy(path.join(module_dir, 'compiler_posix.cmake.j2'), dest_path)
@@ -116,9 +120,11 @@ def setup_cmake_module_folder(rules):
         dest_path = path.join(dest_dir, 'compiler_msvc.cmake')
         shutil.copy(path.join(module_dir, 'compiler_msvc.cmake.j2'), dest_path)
 
-    cond_files = ('compiler_posix.cmake.j2', 'compiler_msvc.cmake.j2',)
+    cond_files = ('compiler_posix.cmake.j2', 'compiler_msvc.cmake.j2',
+                  'CPM.cmake')
     normal_files = filter(lambda name: name not in cond_files,
                           os.listdir(module_dir))
+
     for file in normal_files:
         shutil.copy(path.join(module_dir, file),
                     path.join(dest_dir, file.removesuffix('.j2')))
@@ -265,7 +271,7 @@ def setup_clang_tidy_file(rule_file, rules):
     print('[*] Done setting up .clang-tidy')
 
 
-def setup_vcpkg_manifest(rule_file, rules):
+def setup_vcpkg_manifest(rule_file, rules: Rules):
     if not rules.package_manager_rule.use_vcpkg:
         return
 
@@ -276,7 +282,8 @@ def setup_vcpkg_manifest(rule_file, rules):
     dest = pathlib.Path(rule_file).parent / 'vcpkg.json'
     tp = jinja2.Template(src.read_bytes().decode())
     dest.write_bytes(
-        tp.render(projname=rules.project_rule.lower_name).encode())
+        tp.render(
+            projname=rules.project_rule.lower_name.replace('_', '-')).encode())
 
     print('[*] Done setting up vcpkg manifest file')
 
