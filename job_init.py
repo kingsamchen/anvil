@@ -78,7 +78,7 @@ def generate_root_cmake_file(rules):
     print('[*] Generating root CMakeLists.txt...')
 
     src = get_scaffolds_dir() / 'CMakeLists.txt.j2'
-    tp = jinja2.Template(src.read_bytes().decode())
+    tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     dest = pathlib.Path('CMakeLists.txt')
     dest.write_bytes(tp.render(
         cmake_min_ver=rules.cmake_rule.min_ver,
@@ -139,7 +139,8 @@ def setup_cmake_module_folder(rules: Rules):
     for file in to_replace_files:
         dest_file = pathlib.Path(dest_dir) / file
         dest_file.write_bytes(
-            jinja2.Template(dest_file.read_bytes().decode()).render(
+            jinja2.Template(dest_file.read_bytes().decode(),
+                            keep_trailing_newline=True).render(
                 PROJNAME=rules.project_rule.upper_name,
                 projname=rules.project_rule.lower_name
             ).encode()
@@ -180,7 +181,7 @@ def generate_main_module_cmake_file(rules):
     src = get_scaffolds_dir() / 'main_module' / 'CMakeLists.txt.j2'
     dest = pathlib.Path(main_dir) / 'CMakeLists.txt'
 
-    tp = jinja2.Template(src.read_bytes().decode())
+    tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     module = {
         'name': rules.main_module_rule.name,
         'use_pch': rules.pch_rule.enabled and rules.main_module_rule.use_pch,
@@ -221,7 +222,7 @@ def setup_tests(rules):
         shutil.copy(src, str(dest).removesuffix('.j2'))
 
     f = dest_dir / 'CMakeLists.txt'
-    tp = jinja2.Template(f.read_bytes().decode())
+    tp = jinja2.Template(f.read_bytes().decode(), keep_trailing_newline=True)
     f.write_bytes(tp.render(
         projname=rules.project_rule.lower_name,
         PROJNAME=rules.project_rule.upper_name
@@ -237,7 +238,7 @@ def setup_cmake_presets(rule_file, rules):
         'scaffolds' / 'CMakePresets.json.j2'
     dest = pathlib.Path(rule_file).parent / 'CMakePresets.json'
 
-    tp = jinja2.Template(src.read_bytes().decode())
+    tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     out = tp.render(PROJNAME=rules.project_rule.upper_name,
                     use_cpm=rules.package_manager_rule.use_cpm,
                     use_vcpkg=rules.package_manager_rule.use_vcpkg)
@@ -264,7 +265,7 @@ def setup_clang_tidy_file(rule_file, rules):
     src = pathlib.Path(__file__).resolve().parent / 'scaffolds' \
         / '.clang-tidy.j2'
     dest = pathlib.Path(rule_file).parent / '.clang-tidy'
-    tp = jinja2.Template(src.read_bytes().decode())
+    tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     dest.write_bytes(
         tp.render(main_module_name=rules.main_module_rule.name).encode())
 
@@ -280,7 +281,7 @@ def setup_vcpkg_manifest(rule_file, rules: Rules):
     src = pathlib.Path(__file__).resolve().parent / 'scaffolds' \
         / 'vcpkg.json.j2'
     dest = pathlib.Path(rule_file).parent / 'vcpkg.json'
-    tp = jinja2.Template(src.read_bytes().decode())
+    tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     dest.write_bytes(
         tp.render(
             projname=rules.project_rule.lower_name.replace('_', '-')).encode())
