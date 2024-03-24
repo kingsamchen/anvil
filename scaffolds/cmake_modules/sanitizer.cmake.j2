@@ -1,0 +1,58 @@
+{#
+  - PROJNAME: project name in uppercase
+  - projname: project name in lowercase
+#}
+set({{ PROJNAME }}_USE_SANITIZER "" CACHE STRING
+  "Options are, case-insensitive: ASAN, UBSAN, TSAN. use ; to separate multiple sanitizer")
+message(STATUS "{{ PROJNAME }}_USE_SANITIZER = ${{ '{' }}{{ PROJNAME }}_USE_SANITIZER}")
+
+set({{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "")
+set({{ PROJNAME }}_SANITIZER_LINK_FLAGS "")
+
+if({{ PROJNAME }}_USE_SANITIZER)
+  if(MSVC)
+    foreach(SANITIZER_ORIG IN LISTS {{ PROJNAME }}_USE_SANITIZER)
+      string(TOUPPER "${SANITIZER_ORIG}" SANITIZER)
+
+      if("${SANITIZER}" STREQUAL "ASAN")
+        list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "/fsanitize=address")
+        list(APPEND {{ PROJNAME }}_SANITIZER_LINK_FLAGS "/INCREMENTAL:NO")
+      else()
+        message(FATAL_ERROR "Unsupported sanitizer=${SANITIZER}")
+      endif()
+    endforeach()
+  else()
+    list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "-fno-omit-frame-pointer")
+
+    foreach(SANITIZER_ORIG IN LISTS {{ PROJNAME }}_USE_SANITIZER)
+      string(TOUPPER "${SANITIZER_ORIG}" SANITIZER)
+
+      if("${SANITIZER}" STREQUAL "ASAN")
+        list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "-fsanitize=address")
+        list(APPEND {{ PROJNAME }}_SANITIZER_LINK_FLAGS "-fsanitize=address")
+      elseif("${SANITIZER}" STREQUAL "UBSAN")
+        list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "-fsanitize=undefined")
+        list(APPEND {{ PROJNAME }}_SANITIZER_LINK_FLAGS "-fsanitize=undefined")
+      elseif("${SANITIZER}" STREQUAL "TSAN")
+        list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "-fsanitize=thread")
+        list(APPEND {{ PROJNAME }}_SANITIZER_LINK_FLAGS "-fsanitize=thread")
+      else()
+        message(FATAL_ERROR "Unsupported sanitizer=${SANITIZER}")
+      endif()
+    endforeach()
+  endif()
+endif()
+
+function({{ projname }}_apply_sanitizer TARGET)
+  message(STATUS "Apply {{ projname }} sanitizer for ${TARGET}")
+
+  target_compile_options(${TARGET}
+    PRIVATE
+      ${{ '{' }}{{ PROJNAME }}_SANITIZER_COMPILE_FLAGS}
+  )
+
+  target_link_options(${TARGET}
+    PRIVATE
+      ${{ '{' }}{{ PROJNAME }}_SANITIZER_LINK_FLAGS}
+  )
+endfunction()

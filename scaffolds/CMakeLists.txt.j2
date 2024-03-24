@@ -97,6 +97,7 @@ include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/compiler_posix.cmake)
 {%- endif %}
 
 include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/clang_tidy.cmake)
+include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/sanitizer.cmake)
 
 add_subdirectory({{ module_name }})
 
