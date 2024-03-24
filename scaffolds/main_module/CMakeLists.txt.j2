@@ -27,7 +27,7 @@ target_link_libraries({{ module.name }}
 
 {{ projname }}_apply_common_compile_options({{ module.name }})
 
-if({{ PROJNAME }}_ENABLE_CLANG_TIDY)
+if({{ PROJNAME }}_USE_CLANG_TIDY)
   {{ projname }}_apply_clang_tidy({{ module.name }})
 endif()
 
