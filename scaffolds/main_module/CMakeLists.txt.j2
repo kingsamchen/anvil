@@ -31,6 +31,10 @@ if({{ PROJNAME }}_USE_CLANG_TIDY)
   {{ projname }}_apply_clang_tidy({{ module.name }})
 endif()
 
+if({{ PROJNAME }}_USE_SANITIZER)
+  {{ projname }}_apply_sanitizer({{ module.name }})
+endif()
+
 # TODO: Edit at your will
 if(MSVC)
   if({{ PROJNAME }}_USE_MSVC_PARALLEL_BUILD)

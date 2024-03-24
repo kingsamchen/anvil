@@ -133,7 +133,8 @@ def setup_cmake_module_folder(rules: Rules):
 
     files_need_replace = ('compiler_posix.cmake',
                           'compiler_msvc.cmake',
-                          'clang_tidy.cmake',)
+                          'clang_tidy.cmake',
+                          'sanitizer.cmake',)
     to_replace_files = filter(lambda name: name in files_need_replace,
                               os.listdir(dest_dir))
     for file in to_replace_files:
