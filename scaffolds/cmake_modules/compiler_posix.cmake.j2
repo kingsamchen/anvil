@@ -15,7 +15,7 @@ endif()
 
 function({{ projname }}_apply_common_compile_options TARGET)
   target_compile_definitions(${TARGET}
-    PUBLIC
+    PRIVATE
       $<$<CONFIG:DEBUG>:
         _DEBUG
       >
