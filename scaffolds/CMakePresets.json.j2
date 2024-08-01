@@ -15,13 +15,13 @@
             "name": "linux-release",
             "displayName": "Linux Release",
             "description": "Release build on Linux",
-            "generator": "Ninja Multi-Config",
+            "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/${presetName}",
             {%- if use_vcpkg %}
             "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
             {%- endif %}
             "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Release",
+                "CMAKE_BUILD_TYPE": "Release",
                 {%- if use_cpm %}
                 "CPM_SOURCE_CACHE": "$env{CPM_SOURCE_CACHE}",
                 {%- endif %}
@@ -35,7 +35,7 @@
             "displayName": "Linux Dev",
             "description": "Dev build on Linux",
             "cacheVariables": {
-                "CMAKE_CONFIGURATION_TYPES": "Debug;Release",
+                "CMAKE_BUILD_TYPE": "Debug",
                 "{{ PROJNAME }}_USE_CLANG_TIDY": "OFF"
             }
         },

@@ -9,7 +9,7 @@ import shutil
 
 import job_init
 
-VER = '0.13.20240630'
+VER = '0.14.20240802'
 
 
 def show_anvil_version(_):
