@@ -224,9 +224,13 @@ def setup_tests(rules):
 
     f = dest_dir / 'CMakeLists.txt'
     tp = jinja2.Template(f.read_bytes().decode(), keep_trailing_newline=True)
+    module = {
+        'name': rules.main_module_rule.name,
+    }
     f.write_bytes(tp.render(
         projname=rules.project_rule.lower_name,
-        PROJNAME=rules.project_rule.upper_name
+        PROJNAME=rules.project_rule.upper_name,
+        module=module
     ).encode())
 
     print('[*] Done setting up tests')
