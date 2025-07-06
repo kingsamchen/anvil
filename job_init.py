@@ -48,16 +48,11 @@ class PlatformSupportRule:
         self.support_posix = data['posix']
 
 
-class MainModuleRule:
+class ModuleRule:
     def __init__(self, data):
         self.name = data['name']
         self.type = data['type']
         self.use_pch = data['use_pch']
-
-
-class TestSupportRule:
-    def __init__(self, data):
-        self.enabled = data['enabled']
 
 
 class Rules:
@@ -68,8 +63,7 @@ class Rules:
         self.pch_rule = PCHRule(data['precompiled_header'])
         self.platform_support_rule = PlatformSupportRule(
             data['platform_support'])
-        self.main_module_rule = MainModuleRule(data['main_module'])
-        self.test_support_rule = TestSupportRule(data['test_support'])
+        self.module_rule = ModuleRule(data['module'])
 
 
 def generate_root_cmake_file(rules):
@@ -82,13 +76,12 @@ def generate_root_cmake_file(rules):
         cmake_min_ver=rules.cmake_rule.min_ver,
         PROJNAME=rules.project_rule.upper_name,
         name=rules.project_rule.name,
-        module_name=rules.main_module_rule.name,
+        module_name=rules.module_rule.name,
         cxx_standard=rules.project_rule.cxx_standard,
         use_cpm=rules.package_manager_rule.use_cpm,
         use_pch=rules.pch_rule.enabled,
         on_windows=rules.platform_support_rule.support_windows,
         on_posix=rules.platform_support_rule.support_posix,
-        use_tests=rules.test_support_rule.enabled,
     ).encode())
 
     print('[*] Done generating root CMakeLists.txt...')
@@ -105,65 +98,51 @@ def setup_cmake_module_folder(rules: Rules):
                            'scaffolds',
                            'cmake_modules')
 
-    if rules.package_manager_rule.use_cpm:
-        dest_path = path.join(dest_dir, 'CPM.cmake')
-        shutil.copy(path.join(module_dir, 'CPM.cmake'), dest_path)
+    skip_files = []
 
-    if rules.platform_support_rule.support_posix:
-        dest_path = path.join(dest_dir, 'compiler_posix.cmake')
-        shutil.copy(path.join(module_dir, 'compiler_posix.cmake.j2'), dest_path)
+    if not rules.package_manager_rule.use_cpm:
+        skip_files.append('CPM.cmake')
 
-    if rules.platform_support_rule.support_windows:
-        dest_path = path.join(dest_dir, 'compiler_msvc.cmake')
-        shutil.copy(path.join(module_dir, 'compiler_msvc.cmake.j2'), dest_path)
+    if not rules.platform_support_rule.support_posix:
+        skip_files.append('compiler_posix.cmake.j2')
 
-    cond_files = ('compiler_posix.cmake.j2', 'compiler_msvc.cmake.j2',
-                  'CPM.cmake')
-    normal_files = filter(lambda name: name not in cond_files,
-                          os.listdir(module_dir))
+    if not rules.platform_support_rule.support_windows:
+        skip_files.append('compiler_msvc.cmake.j2')
 
-    for file in normal_files:
+    used_files = filter(lambda name: name not in skip_files,
+                        os.listdir(module_dir))
+
+    for file in used_files:
         shutil.copy(path.join(module_dir, file),
-                    path.join(dest_dir, file.removesuffix('.j2')))
+                    path.join(dest_dir, file))
 
     # Render templates
-
-    files_need_replace = ('compiler_posix.cmake',
-                          'compiler_msvc.cmake',
-                          'clang_tidy.cmake',
-                          'sanitizer.cmake',
-                          'pch.cmake',)
-    to_replace_files = filter(lambda name: name in files_need_replace,
-                              os.listdir(dest_dir))
-    for file in to_replace_files:
-        dest_file = pathlib.Path(dest_dir) / file
-        dest_file.write_bytes(
-            jinja2.Template(dest_file.read_bytes().decode(),
-                            keep_trailing_newline=True).render(
-                PROJNAME=rules.project_rule.upper_name,
-                projname=rules.project_rule.lower_name
-            ).encode()
-        )
+    for file in os.listdir(dest_dir):
+        if file.endswith('.j2'):
+            dest_file = pathlib.Path(dest_dir) / file
+            dest_file.write_bytes(
+                jinja2.Template(dest_file.read_bytes().decode(),
+                                keep_trailing_newline=True).render(
+                    PROJNAME=rules.project_rule.upper_name,
+                    projname=rules.project_rule.lower_name
+                ).encode()
+            )
+            # drop .j2 extension.
+            dest_file.rename(dest_file.with_suffix(''))
 
     print('[*] Done setting up cmake modules')
 
 
-def generate_main_module_cmake_file(rules):
-    print('[*] Setting up CMakeLists.txt for main module')
-
-    main_dir = rules.main_module_rule.name
-
-    if not path.exists(main_dir):
-        os.mkdir(main_dir)
-
-    src = get_scaffolds_dir() / 'main_module' / 'CMakeLists.txt.j2'
+def generate_module_cmake_file(rules):
+    main_dir = rules.module_rule.name
+    src = get_scaffolds_dir() / 'module' / 'CMakeLists.txt.j2'
     dest = pathlib.Path(main_dir) / 'CMakeLists.txt'
 
     tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     module = {
-        'name': rules.main_module_rule.name,
-        'type': rules.main_module_rule.type,
-        'use_pch': rules.pch_rule.enabled and rules.main_module_rule.use_pch,
+        'name': rules.module_rule.name,
+        'type': rules.module_rule.type,
+        'use_pch': rules.pch_rule.enabled and rules.module_rule.use_pch,
     }
     dest.write_bytes(tp.render(
         PROJNAME=rules.project_rule.upper_name,
@@ -171,46 +150,13 @@ def generate_main_module_cmake_file(rules):
         module=module
     ).encode())
 
-    print('[*] Done setting up CMakeLists.txt for main module')
-
 
 def touch_main_source_file(rules):
-    main_dir = rules.main_module_rule.name
+    main_dir = rules.module_rule.name
     src = pathlib.Path(__file__).resolve().parent / \
-        'scaffolds' / 'main_module' / 'main.cpp'
+        'scaffolds' / 'module' / 'main.cpp'
     dest = pathlib.Path(main_dir) / 'main.cpp'
     shutil.copy(src, dest)
-
-
-def setup_tests(rules):
-    if not rules.test_support_rule.enabled:
-        return
-
-    print('[*] Setting up tests')
-
-    src_test_dir = get_scaffolds_dir() / 'tests'
-    dest_dir = pathlib.Path('tests')
-    if not path.exists(dest_dir):
-        os.mkdir(dest_dir)
-
-    test_files = os.listdir(src_test_dir)
-    for file in test_files:
-        src = src_test_dir / file
-        dest = dest_dir / file
-        shutil.copy(src, str(dest).removesuffix('.j2'))
-
-    f = dest_dir / 'CMakeLists.txt'
-    tp = jinja2.Template(f.read_bytes().decode(), keep_trailing_newline=True)
-    module = {
-        'name': rules.main_module_rule.name,
-    }
-    f.write_bytes(tp.render(
-        projname=rules.project_rule.lower_name,
-        PROJNAME=rules.project_rule.upper_name,
-        module=module
-    ).encode())
-
-    print('[*] Done setting up tests')
 
 
 def setup_cmake_presets(rule_file, rules):
@@ -244,12 +190,12 @@ def setup_clang_format_file(rule_file):
 def setup_clang_tidy_file(rule_file, rules):
     print('[*] Setting up clang-tidy file')
 
-    src = pathlib.Path(__file__).resolve().parent / 'scaffolds' \
-        / '.clang-tidy.j2'
+    src = pathlib.Path(__file__).resolve().parent / \
+        'scaffolds' / '.clang-tidy.j2'
     dest = pathlib.Path(rule_file).parent / '.clang-tidy'
     tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     dest.write_bytes(
-        tp.render(main_module_name=rules.main_module_rule.name).encode())
+        tp.render(module_name=rules.module_rule.name).encode())
 
     print('[*] Done setting up .clang-tidy')
 
@@ -260,8 +206,8 @@ def setup_vcpkg_manifest(rule_file, rules: Rules):
 
     print('[*] Setting up vcpkg manifest file')
 
-    src = pathlib.Path(__file__).resolve().parent / 'scaffolds' \
-        / 'vcpkg.json.j2'
+    src = pathlib.Path(__file__).resolve().parent / \
+        'scaffolds' / 'vcpkg.json.j2'
     dest = pathlib.Path(rule_file).parent / 'vcpkg.json'
     tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     dest.write_bytes(
@@ -271,15 +217,28 @@ def setup_vcpkg_manifest(rule_file, rules: Rules):
     print('[*] Done setting up vcpkg manifest file')
 
 
+def setup_module(rules):
+    module_dir = rules.module_rule.name
+    if not path.exists(module_dir):
+        os.mkdir(module_dir)
+    generate_module_cmake_file(rules)
+    touch_main_source_file(rules)
+    print(f'[*] Done setting up module {rules.module_rule.name}')
+
+
+def add_module(args):
+    data = toml.load(args.rule_file)
+    rules = Rules(data)
+    setup_module(rules)
+
+
 def run_init_job(args):
     data = toml.load(args.rule_file)
     rules = Rules(data)
     generate_root_cmake_file(rules)
     setup_cmake_module_folder(rules)
-    generate_main_module_cmake_file(rules)
-    setup_tests(rules)
-    touch_main_source_file(rules)
     setup_cmake_presets(args.rule_file, rules)
     setup_clang_format_file(args.rule_file)
     setup_clang_tidy_file(args.rule_file, rules)
     setup_vcpkg_manifest(args.rule_file, rules)
+    setup_module(rules)
