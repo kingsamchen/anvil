@@ -2,21 +2,25 @@
   - PROJNAME: project name in uppercase
   - projname: project name in lowercase
 #}
-set({{ PROJNAME }}_USE_SANITIZER "" CACHE STRING
+set({{ PROJNAME }}_USE_SANITIZERS "" CACHE STRING
   "Options are, case-insensitive: ASAN, UBSAN, TSAN. use ; to separate multiple sanitizer")
-message(STATUS "{{ PROJNAME }}_USE_SANITIZER = ${{ '{' }}{{ PROJNAME }}_USE_SANITIZER}")
+message(STATUS "{{ PROJNAME }}_USE_SANITIZERS = {{ '${' ~ PROJNAME ~ '_USE_SANITIZERS}' }}")
 
 set({{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "")
 set({{ PROJNAME }}_SANITIZER_LINK_FLAGS "")
 
-if({{ PROJNAME }}_USE_SANITIZER)
+if({{ PROJNAME }}_USE_SANITIZERS)
   if(MSVC)
-    foreach(SANITIZER_ORIG IN LISTS {{ PROJNAME }}_USE_SANITIZER)
+    # See https://learn.microsoft.com/en-us/cpp/sanitizers/asan-known-issues?#incompatible-options
+    string(REGEX REPLACE "/RTC[1scu]" "" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+    string(REGEX REPLACE "/RTC[1scu]" "" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
+    list(APPEND {{ PROJNAME }}_SANITIZER_LINK_FLAGS "/INCREMENTAL:NO")
+
+    foreach(SANITIZER_ORIG IN LISTS {{ PROJNAME }}_USE_SANITIZERS)
       string(TOUPPER "${SANITIZER_ORIG}" SANITIZER)
 
       if("${SANITIZER}" STREQUAL "ASAN")
         list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "/fsanitize=address")
-        list(APPEND {{ PROJNAME }}_SANITIZER_LINK_FLAGS "/INCREMENTAL:NO")
       else()
         message(FATAL_ERROR "Unsupported sanitizer=${SANITIZER}")
       endif()
@@ -24,7 +28,7 @@ if({{ PROJNAME }}_USE_SANITIZER)
   else()
     list(APPEND {{ PROJNAME }}_SANITIZER_COMPILE_FLAGS "-fno-omit-frame-pointer")
 
-    foreach(SANITIZER_ORIG IN LISTS {{ PROJNAME }}_USE_SANITIZER)
+    foreach(SANITIZER_ORIG IN LISTS {{ PROJNAME }}_USE_SANITIZERS)
       string(TOUPPER "${SANITIZER_ORIG}" SANITIZER)
 
       if("${SANITIZER}" STREQUAL "ASAN")
@@ -43,16 +47,18 @@ if({{ PROJNAME }}_USE_SANITIZER)
   endif()
 endif()
 
-function({{ projname }}_apply_sanitizer TARGET)
-  message(STATUS "Apply {{ projname }} sanitizer for ${TARGET}")
+function({{ projname }}_use_sanitizers TARGET)
+  if(NOT {{ PROJNAME }}_USE_SANITIZERS)
+    return()
+  endif()
 
   target_compile_options(${TARGET}
     PRIVATE
-      ${{ '{' }}{{ PROJNAME }}_SANITIZER_COMPILE_FLAGS}
+      {{ '${' ~ PROJNAME ~ '_SANITIZER_COMPILE_FLAGS}' }}
   )
 
   target_link_options(${TARGET}
     PRIVATE
-      ${{ '{' }}{{ PROJNAME }}_SANITIZER_LINK_FLAGS}
+      {{ '${' ~ PROJNAME ~ '_SANITIZER_LINK_FLAGS}' }}
   )
 endfunction()

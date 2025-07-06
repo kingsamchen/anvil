@@ -16,26 +16,13 @@ target_link_libraries({{ module.name }}_test
     doctest
 )
 
-{{ projname }}_apply_common_compile_options({{ module.name }}_test)
+{{ projname }}_common_compile_configs({{ module.name }}_test)
 
-if({{ PROJNAME }}_USE_CLANG_TIDY)
-  {{ projname }}_apply_clang_tidy({{ module.name }}_test)
-endif()
+{{ projname }}_clang_tidy_on_build({{ module.name }}_test)
 
-if({{ PROJNAME }}_USE_SANITIZER)
-  {{ projname }}_apply_sanitizer({{ module.name }}_test)
-endif()
+{{ projname }}_use_sanitizers({{ module.name }}_test)
 
-if(MSVC)
-  if({{ PROJNAME }}_USE_MSVC_PARALLEL_BUILD)
-    {{ projname }}_apply_msvc_parallel_build({{ module.name }}_test)
-  endif()
-  if({{ PROJNAME }}_USE_MSVC_STATIC_ANALYSIS)
-    {{ projname }}_apply_msvc_static_analysis({{ module.name }}_test)
-  endif()
-endif()
-
-get_target_property(tests_FILES {{ module.name }}_test SOURCES)
-source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${tests_FILES})
+get_target_property({{ module.name }}_test_FILES {{ module.name }}_test SOURCES)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES  {{ '${' ~ module.name ~ '_test_FILES}' }})
 
 add_test(NAME tests COMMAND {{ module.name }}_test)

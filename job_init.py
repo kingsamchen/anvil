@@ -40,7 +40,6 @@ class PackageManagerRule:
 class PCHRule:
     def __init__(self, data):
         self.enabled = data['enabled']
-        self.pch_file = data['pch_file']
 
 
 class PlatformSupportRule:
@@ -54,7 +53,6 @@ class MainModuleRule:
         self.name = data['name']
         self.type = data['type']
         self.use_pch = data['use_pch']
-        self.use_msvc_sa = data['use_msvc_static_analysis']
 
 
 class TestSupportRule:
@@ -88,7 +86,6 @@ def generate_root_cmake_file(rules):
         cxx_standard=rules.project_rule.cxx_standard,
         use_cpm=rules.package_manager_rule.use_cpm,
         use_pch=rules.pch_rule.enabled,
-        pch_file=rules.pch_rule.pch_file,
         on_windows=rules.platform_support_rule.support_windows,
         on_posix=rules.platform_support_rule.support_posix,
         use_tests=rules.test_support_rule.enabled,
@@ -134,7 +131,8 @@ def setup_cmake_module_folder(rules: Rules):
     files_need_replace = ('compiler_posix.cmake',
                           'compiler_msvc.cmake',
                           'clang_tidy.cmake',
-                          'sanitizer.cmake',)
+                          'sanitizer.cmake',
+                          'pch.cmake',)
     to_replace_files = filter(lambda name: name in files_need_replace,
                               os.listdir(dest_dir))
     for file in to_replace_files:
@@ -148,27 +146,6 @@ def setup_cmake_module_folder(rules: Rules):
         )
 
     print('[*] Done setting up cmake modules')
-
-
-def setup_pch_files(rules):
-    if not rules.pch_rule.enabled:
-        return
-
-    print('[*] Setting up pch files')
-
-    pch_folder = path.dirname(rules.pch_rule.pch_file)
-    if not path.exists(pch_folder):
-        os.makedirs(pch_folder)
-
-    pch_src_dir = path.join(path.dirname(
-        path.abspath(__file__)), 'scaffolds', 'pch')
-
-    shutil.copy(path.join(pch_src_dir, 'precompile.h'),
-                rules.pch_rule.pch_file)
-    shutil.copy(path.join(pch_src_dir, 'precompile.cpp'),
-                path.join(pch_folder, 'precompile.cpp'))
-
-    print('[*] Done setting up pch files')
 
 
 def generate_main_module_cmake_file(rules):
@@ -185,8 +162,8 @@ def generate_main_module_cmake_file(rules):
     tp = jinja2.Template(src.read_bytes().decode(), keep_trailing_newline=True)
     module = {
         'name': rules.main_module_rule.name,
-        'use_pch': rules.pch_rule.enabled and rules.main_module_rule.use_pch,
         'type': rules.main_module_rule.type,
+        'use_pch': rules.pch_rule.enabled and rules.main_module_rule.use_pch,
     }
     dest.write_bytes(tp.render(
         PROJNAME=rules.project_rule.upper_name,
@@ -299,7 +276,6 @@ def run_init_job(args):
     rules = Rules(data)
     generate_root_cmake_file(rules)
     setup_cmake_module_folder(rules)
-    setup_pch_files(rules)
     generate_main_module_cmake_file(rules)
     setup_tests(rules)
     touch_main_source_file(rules)
