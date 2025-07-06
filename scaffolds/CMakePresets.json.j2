@@ -25,8 +25,8 @@
                 {%- if use_cpm %}
                 "CPM_SOURCE_CACHE": "$env{CPM_SOURCE_CACHE}",
                 {%- endif %}
-                "{{ PROJNAME }}_USE_SANITIZER": "ASAN;UBSAN",
-                "{{ PROJNAME }}_USE_CLANG_TIDY": "ON"
+                "{{ PROJNAME }}_USE_SANITIZERS": "ASAN;UBSAN",
+                "{{ PROJNAME }}_CLANG_TIDY_ON_BUILD": "OFF"
             }
         },
         {
@@ -35,8 +35,7 @@
             "displayName": "Linux Dev",
             "description": "Dev build on Linux",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "{{ PROJNAME }}_USE_CLANG_TIDY": "OFF"
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -51,9 +50,8 @@
                 {%- if use_cpm %}
                 "CPM_SOURCE_CACHE": "$env{CPM_SOURCE_CACHE}",
                 {%- endif %}
-                "{{ PROJNAME }}_USE_SANITIZER": "ASAN",
-                "{{ PROJNAME }}_USE_CLANG_TIDY": "ON",
-                "{{ PROJNAME }}_USE_MSVC_STATIC_ANALYSIS": "ON"
+                "{{ PROJNAME }}_USE_SANITIZERS": "ASAN",
+                "{{ PROJNAME }}_CLANG_TIDY_ON_BUILD": "ON"
             },
             "condition": {
                 "type": "equals",
@@ -67,8 +65,7 @@
             "displayName": "Windows Dev",
             "description": "Dev build on Windows",
             "cacheVariables": {
-                "{{ PROJNAME }}_USE_CLANG_TIDY": "OFF",
-                "{{ PROJNAME }}_USE_MSVC_STATIC_ANALYSIS": "OFF"
+                "{{ PROJNAME }}_CLANG_TIDY_ON_BUILD": "OFF"
             }
         }
     ],

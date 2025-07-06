@@ -22,7 +22,7 @@ else()
   set({{ PROJNAME }}_NOT_SUBPROJECT OFF)
 endif()
 
-message(STATUS "{{ name }} as root project = ${{ '{' }}{{ PROJNAME }}_NOT_SUBPROJECT}")
+message(STATUS "{{ name }} as root project = {{ '${' ~ PROJNAME ~ '_NOT_SUBPROJECT}' }}")
 
 project({{ name }} CXX)
 
@@ -40,20 +40,14 @@ endif()
 # Add options below.
 
 set({{ PROJNAME }}_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set({{ PROJNAME }}_CMAKE_DIR ${{ '{' }}{{ PROJNAME }}_DIR}/cmake)
+set({{ PROJNAME }}_CMAKE_DIR {{ '${' ~ PROJNAME ~ '_DIR}/cmake' }})
 
 include(CTest)
 {%- if use_cpm %}
-include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/CPM.cmake)
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}/CPM.cmake' }})
 {%- endif %}
 
 message(STATUS "{{ name }} GENERATOR = " ${CMAKE_GENERATOR})
-
-{%- if use_pch %}
-
-set({{ PROJNAME }}_PCH_HEADER ${{ '{' }}{{ PROJNAME }}_DIR}/{{ pch_file }})
-
-{%- endif %}
 
 # Output configurations.
 get_property(MULTICONF_GENERATOR GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
@@ -81,23 +75,29 @@ endif()
 # Compiler configurations.
 {%- if on_windows and on_posix %}
 if(MSVC)
-  include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/compiler_msvc.cmake)
+  include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/compiler_msvc.cmake)
 else()
-  include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/compiler_posix.cmake)
+  include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/compiler_posix.cmake)
 endif()
 
 {%- else %}
 
 {%- if on_windows %}
-include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/compiler_msvc.cmake)
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/compiler_msvc.cmake)
 {%- else %}
-include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/compiler_posix.cmake)
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/compiler_posix.cmake)
 {%- endif %}
 
 {%- endif %}
 
-include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/clang_tidy.cmake)
-include(${{ '{' }}{{ PROJNAME }}_CMAKE_DIR}/sanitizer.cmake)
+{%- if use_pch %}
+
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/pch.cmake)
+
+{%- endif %}
+
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/clang_tidy.cmake)
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/sanitizer.cmake)
 
 add_subdirectory({{ module_name }})
 

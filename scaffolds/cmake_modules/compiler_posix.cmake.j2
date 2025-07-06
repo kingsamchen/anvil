@@ -2,6 +2,8 @@
   - PROJNAME: project name in uppercase
   - projname: project name in lowercase
 #}
+include({{ '${' ~ PROJNAME ~ '_CMAKE_DIR}' }}/utils.cmake)
+
 if({{ PROJNAME }}_NOT_SUBPROJECT)
   message(STATUS "{{ projname }} compiler POSIX global conf is in active")
 
@@ -13,27 +15,31 @@ if({{ PROJNAME }}_NOT_SUBPROJECT)
   endif()
 endif()
 
-function({{ projname }}_apply_common_compile_options TARGET)
-  target_compile_definitions(${TARGET}
-    PRIVATE
-      $<$<CONFIG:DEBUG>:
-        _DEBUG
-      >
-  )
+function({{ projname }}_common_compile_configs TARGET)
+  get_target_type(${TARGET} TARGET_TYPE)
 
-  target_compile_options(${TARGET}
-    PRIVATE
-      -Wall
-      -Wextra
-      -Werror
-      -Wconversion
-      -Wdouble-promotion
-      -Wold-style-cast
-      -Woverloaded-virtual
-      -Wpointer-arith
-      -Wshadow
-      -Wsign-conversion
-      -Wno-unused-function
-      -Wno-error=deprecated
-  )
+  if(NOT TARGET_TYPE STREQUAL "INTERFACE_LIBRARY")
+    target_compile_definitions(${TARGET}
+      PRIVATE
+        $<$<CONFIG:DEBUG>:
+          _DEBUG
+        >
+    )
+
+    target_compile_options(${TARGET}
+      PRIVATE
+        -Wall
+        -Wextra
+        -Werror
+        -Wconversion
+        -Wdouble-promotion
+        -Wold-style-cast
+        -Woverloaded-virtual
+        -Wpointer-arith
+        -Wshadow
+        -Wsign-conversion
+        -Wno-unused-function
+        -Wno-error=deprecated
+    )
+  endif()
 endfunction()

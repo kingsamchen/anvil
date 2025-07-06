@@ -1,6 +1,6 @@
 
 [cmake]
-    min_ver = "3.21"
+    min_ver = "3.28"
 
 [project]
     name = "Demo"
@@ -11,9 +11,7 @@
     use_vcpkg = true
 
 [precompiled_header]
-    enabled = true
-    # `pch_file` path is relative the current project directory.
-    pch_file = "build/pch/precompile.h"
+    enabled = false
 
 [platform_support]
     windows = true
@@ -21,12 +19,10 @@
 
 [main_module]
     name = "demo"
-    # choose between "library" or "executable"
+    # choose between "library", "interface" or "executable"
     type = "executable"
-    # effective only if precompiled_header is enable.
-    use_pch = true
-    # effective only if windows platform is enabled.
-    use_msvc_static_analysis = true
+    # effective only if precompiled_header is enable, and module type is not interface.
+    use_pch = false
 
 [test_support]
     enabled = true
