@@ -17,14 +17,9 @@
     windows = true
     posix = true
 
-[main_module]
+[module]
     name = "demo"
     # choose between "library", "interface" or "executable"
     type = "executable"
     # effective only if precompiled_header is enable, and module type is not interface.
     use_pch = false
-
-[test_support]
-    enabled = true
-    # Unused. Currently only support doctest
-    # framework = "doctest"

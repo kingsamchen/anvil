@@ -39,6 +39,15 @@ def parse_args():
         'rule_file', help='path to the rule file to bootstrap the project',
         action='store')
 
+    # command add
+    # add a new module, use `main_module` and `project.name` in the rule file.
+    add_module_parser = cmd_parser.add_parser(
+        'add', help='add a new module to current project')
+    add_module_parser.set_defaults(func=job_init.add_module)
+    add_module_parser.add_argument(
+        'rule_file', help='path to the rule file to add the module',
+        action='store')
+
     # command version
     ver_parser = cmd_parser.add_parser('version', help='show version and exit')
     ver_parser.set_defaults(func=show_anvil_version)
